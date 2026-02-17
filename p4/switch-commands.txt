@@ -1,1 +1,20 @@
-TODO: commands to run at switch startup (fill Match+Action tables, etc...)
+# ============================================================
+# S1 startup commands
+# Port mapping:
+#   port 1 = h1   10.0.1.1  00:00:00:00:01:01
+#   port 2 = h2   10.0.1.2  00:00:00:00:01:02
+#   port 3 = h3   10.0.1.3  00:00:00:00:01:03
+# ============================================================
+
+# --- IPv4 unicast forwarding ---
+table_add MyIngress.ipv4_lpm MyIngress.ipv4_forward 10.0.1.1/32 => 00:00:00:00:01:01 1
+table_add MyIngress.ipv4_lpm MyIngress.ipv4_forward 10.0.1.2/32 => 00:00:00:00:01:02 2
+table_add MyIngress.ipv4_lpm MyIngress.ipv4_forward 10.0.1.3/32 => 00:00:00:00:01:03 3
+
+# --- Multicast group 1: all three ports ---
+# Step 1: create multicast group 1
+mc_mgrp_create 1
+# Step 2: create a node with rid=0, port list = 1 2 3
+mc_node_create 0 1 2 3
+# Step 3: associate node handle 0 to group 1
+mc_node_associate 1 0
