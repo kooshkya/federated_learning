@@ -1,0 +1,18 @@
+{
+  "p4_src": "./p4/federated_learning.p4",
+  "cli": true,
+  "pcap_dump": true,
+  "enable_log": true,
+  "compiler_flags": ["-DDEBUG"],
+  "topology": {
+    "assignment_strategy": "mixed",
+    //TODO: Add hosts and connections based on the provided topology
+    "links": [],
+    "hosts": {},
+    "switches": {
+      "s1": {
+        "cli_input": "p4/switch-commands.txt"
+      }
+    }
+  }
+}

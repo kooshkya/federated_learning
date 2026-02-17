@@ -1,0 +1,17 @@
+{
+  "protocol": {
+    "num_workers": 3
+  },
+  "training": {
+    "rounds": 25,
+    "samples_per_worker": 300,
+    "epochs_per_round": 50,
+    "learning_rate": 0.005,
+    "momentum": 0.9
+  },
+  "model_params": {
+    "input_size": 15,
+    "hidden_size": 8,
+    "output_size": 3
+  }
+}
