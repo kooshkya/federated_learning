@@ -80,9 +80,19 @@ class SimpleNeuralNetwork:
         return np.mean(y_pred == y)
 
     def get_weights(self) -> List[np.ndarray]:
-        # TODO: Implement the logic to output current weights to send for aggregation
-        pass
+        """Return current weights as a flat numpy array for aggregation."""
+        return [self.W1, self.b1, self.W2, self.b2]
 
-    def set_weights(self, weights):
-        # TODO: Implement the logic to get aggregated weights and update the model
-        pass
+    def set_weights(self, weights: List[np.ndarray]):
+        """Update model parameters from received aggregated weights."""
+        if weights is None:
+            return
+        self.W1 = weights[0].reshape(self.W1.shape)
+        self.b1 = weights[1].reshape(self.b1.shape)
+        self.W2 = weights[2].reshape(self.W2.shape)
+        self.b2 = weights[3].reshape(self.b2.shape)
+        self.vW1 = np.zeros_like(self.W1)
+        self.vb1 = np.zeros_like(self.b1)
+        self.vW2 = np.zeros_like(self.W2)
+        self.vb2 = np.zeros_like(self.b2)
+

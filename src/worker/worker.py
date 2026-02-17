@@ -49,14 +49,94 @@ class Worker:
         except Exception as e:
             print(f"Error in packet receiver: {e}", file=sys.stderr)
 
+    def _packet_receiver(self):
+        print(f"Starting packet receiver on {self.iface}...")
+        try:
+            sniff(
+                filter="ether proto 0x1234",
+                iface=self.iface,
+                prn=self._handle_packet
+            )
+        except Exception as e:
+            print(f"Error in packet receiver: {e}", file=sys.stderr)
+
     def _handle_packet(self, pkt: Packet):
-        # TODO: Get aggregated weights and update the model
-        self.model.set_weights(None)
-        self.received_event.set()
+
+        if Aggregation not in pkt:
+            return
+
+        agg = pkt[Aggregation]
+        sender_id  = int(agg.worker_id)
+        round_num  = int(agg.round_num)
+        weight_idx = int(agg.weight_index)
+        total      = int(agg.total_weights)
+        SCALE      = 1_000_000
+
+        if sender_id == self.worker_id or round_num != self.current_round:
+            return
+
+        if sender_id not in self.received_weights:
+            self.received_weights[sender_id] = {
+                "weights": np.zeros(total, dtype=np.float32),
+                "received": 0,
+                "total": total,
+            }
+
+        buf = self.received_weights[sender_id]
+        buf["weights"][weight_idx] = int(agg.weight_value) / SCALE  # int() here too
+        buf["received"] += 1
+
+        num_workers      = self.config.protocol.num_workers
+        expected_senders = num_workers - 1
+
+        all_done = (
+            len(self.received_weights) == expected_senders
+            and all(b["received"] >= b["total"] for b in self.received_weights.values())
+        )
+
+        if all_done:
+            my_flat    = np.concatenate([w.flatten() for w in self.model.get_weights()])
+            peer_flats = [b["weights"] for b in self.received_weights.values()]
+            averaged   = np.mean([my_flat] + peer_flats, axis=0)
+
+            model  = self.model
+            shapes = [model.W1.shape, model.b1.shape, model.W2.shape, model.b2.shape]
+            new_weights = []
+            offset = 0
+            for shape in shapes:
+                size = int(np.prod(shape))
+                new_weights.append(averaged[offset:offset + size].reshape(shape))
+                offset += size
+
+            self.model.set_weights(new_weights)
+            print(f"Worker {self.worker_id}: aggregated weights from {expected_senders} peer(s).")
+            self.received_event.set()
 
     def send_model_weights(self):
-        # TODO: Send model weights to the network for aggregation
         weights = self.model.get_weights()
+        flat_weights = np.concatenate([w.flatten() for w in weights])
+        total = len(flat_weights)
+        SCALE = 1_000_000
+
+        for idx, val in enumerate(flat_weights):
+            # Cast to plain Python int explicitly — numpy.int64 breaks Scapy's IntField
+            weight_int = int(round(float(val) * SCALE))
+
+            pkt = (
+                Ether(dst="ff:ff:ff:ff:ff:ff", type=TYPE_AGGREGATION)
+                / Aggregation(
+                    round_num=self.current_round,
+                    worker_id=self.worker_id,
+                    weight_index=idx,
+                    total_weights=total,
+                    weight_value=weight_int,
+                )
+            )
+
+            sendp(pkt, iface=self.iface, verbose=False)
+
+        print(f"Worker {self.worker_id}: sent {total} weight packets for round {self.current_round + 1}")
+
 
     def run_training_round(self):
         print(f"Loading data for round {self.current_round + 1}...")
