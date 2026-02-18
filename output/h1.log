@@ -1,0 +1,479 @@
+[W1] Listening on h1-eth0...
+=============== Round 1/25 ===============
+
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 1.0982, Accuracy: 0.3900
+  Epoch  10, Loss: 1.0424, Accuracy: 0.5200
+  Epoch  20, Loss: 0.9558, Accuracy: 0.6567
+  Epoch  30, Loss: 0.8761, Accuracy: 0.7167
+  Epoch  40, Loss: 0.8025, Accuracy: 0.7633
+  Epoch  49, Loss: 0.7340, Accuracy: 0.7867
+[W1] Round 1 pre-agg train acc: 0.7867
+[W1] Sending 155 weights for round 0...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 1 post-agg test acc: 0.6222
+
+
+=============== Round 2/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.8218, Accuracy: 0.6167
+  Epoch  10, Loss: 0.7356, Accuracy: 0.8200
+  Epoch  20, Loss: 0.6265, Accuracy: 0.8600
+  Epoch  30, Loss: 0.5206, Accuracy: 0.8733
+  Epoch  40, Loss: 0.4358, Accuracy: 0.8800
+  Epoch  49, Loss: 0.3768, Accuracy: 0.9000
+[W1] Round 2 pre-agg train acc: 0.9000
+[W1] Sending 155 weights for round 1...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 2 post-agg test acc: 0.8111
+
+
+=============== Round 3/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.6055, Accuracy: 0.7867
+  Epoch  10, Loss: 0.5067, Accuracy: 0.8267
+  Epoch  20, Loss: 0.4201, Accuracy: 0.8433
+  Epoch  30, Loss: 0.3542, Accuracy: 0.8933
+  Epoch  40, Loss: 0.3054, Accuracy: 0.9167
+  Epoch  49, Loss: 0.2728, Accuracy: 0.9300
+[W1] Round 3 pre-agg train acc: 0.9300
+[W1] Sending 155 weights for round 2...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 3 post-agg test acc: 0.7778
+
+
+=============== Round 4/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.5718, Accuracy: 0.7833
+  Epoch  10, Loss: 0.4470, Accuracy: 0.8567
+  Epoch  20, Loss: 0.3461, Accuracy: 0.9067
+  Epoch  30, Loss: 0.2898, Accuracy: 0.9167
+  Epoch  40, Loss: 0.2541, Accuracy: 0.9133
+  Epoch  49, Loss: 0.2333, Accuracy: 0.9233
+[W1] Round 4 pre-agg train acc: 0.9233
+[W1] Sending 155 weights for round 3...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 4 post-agg test acc: 0.7222
+
+
+=============== Round 5/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.5157, Accuracy: 0.8100
+  Epoch  10, Loss: 0.3902, Accuracy: 0.9167
+  Epoch  20, Loss: 0.2899, Accuracy: 0.9333
+  Epoch  30, Loss: 0.2363, Accuracy: 0.9300
+  Epoch  40, Loss: 0.2039, Accuracy: 0.9500
+  Epoch  49, Loss: 0.1860, Accuracy: 0.9467
+[W1] Round 5 pre-agg train acc: 0.9467
+[W1] Sending 155 weights for round 4...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 5 post-agg test acc: 0.7556
+
+
+=============== Round 6/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.5161, Accuracy: 0.8000
+  Epoch  10, Loss: 0.3669, Accuracy: 0.9000
+  Epoch  20, Loss: 0.2622, Accuracy: 0.9400
+  Epoch  30, Loss: 0.2152, Accuracy: 0.9400
+  Epoch  40, Loss: 0.1892, Accuracy: 0.9533
+  Epoch  49, Loss: 0.1740, Accuracy: 0.9567
+[W1] Round 6 pre-agg train acc: 0.9567
+[W1] Sending 155 weights for round 5...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 6 post-agg test acc: 0.7222
+
+
+=============== Round 7/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.5084, Accuracy: 0.7900
+  Epoch  10, Loss: 0.3582, Accuracy: 0.9033
+  Epoch  20, Loss: 0.2586, Accuracy: 0.9400
+  Epoch  30, Loss: 0.2159, Accuracy: 0.9433
+  Epoch  40, Loss: 0.1934, Accuracy: 0.9467
+  Epoch  49, Loss: 0.1809, Accuracy: 0.9533
+[W1] Round 7 pre-agg train acc: 0.9533
+[W1] Sending 155 weights for round 6...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 7 post-agg test acc: 0.6889
+
+
+=============== Round 8/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4795, Accuracy: 0.8000
+  Epoch  10, Loss: 0.3182, Accuracy: 0.9267
+  Epoch  20, Loss: 0.2207, Accuracy: 0.9433
+  Epoch  30, Loss: 0.1803, Accuracy: 0.9567
+  Epoch  40, Loss: 0.1607, Accuracy: 0.9633
+  Epoch  49, Loss: 0.1498, Accuracy: 0.9667
+[W1] Round 8 pre-agg train acc: 0.9667
+[W1] Sending 155 weights for round 7...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 8 post-agg test acc: 0.6889
+
+
+=============== Round 9/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.5368, Accuracy: 0.7600
+  Epoch  10, Loss: 0.3286, Accuracy: 0.9200
+  Epoch  20, Loss: 0.2339, Accuracy: 0.9267
+  Epoch  30, Loss: 0.2016, Accuracy: 0.9533
+  Epoch  40, Loss: 0.1833, Accuracy: 0.9567
+  Epoch  49, Loss: 0.1724, Accuracy: 0.9667
+[W1] Round 9 pre-agg train acc: 0.9667
+[W1] Sending 155 weights for round 8...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 9 post-agg test acc: 0.7000
+
+
+=============== Round 10/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4787, Accuracy: 0.8100
+  Epoch  10, Loss: 0.2977, Accuracy: 0.9367
+  Epoch  20, Loss: 0.2168, Accuracy: 0.9333
+  Epoch  30, Loss: 0.1883, Accuracy: 0.9367
+  Epoch  40, Loss: 0.1724, Accuracy: 0.9467
+  Epoch  49, Loss: 0.1627, Accuracy: 0.9467
+[W1] Round 10 pre-agg train acc: 0.9467
+[W1] Sending 155 weights for round 9...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 10 post-agg test acc: 0.7111
+
+
+=============== Round 11/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4689, Accuracy: 0.8300
+  Epoch  10, Loss: 0.2964, Accuracy: 0.9300
+  Epoch  20, Loss: 0.2061, Accuracy: 0.9400
+  Epoch  30, Loss: 0.1757, Accuracy: 0.9500
+  Epoch  40, Loss: 0.1608, Accuracy: 0.9600
+  Epoch  49, Loss: 0.1521, Accuracy: 0.9600
+[W1] Round 11 pre-agg train acc: 0.9600
+[W1] Sending 155 weights for round 10...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 11 post-agg test acc: 0.6556
+
+
+=============== Round 12/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.5377, Accuracy: 0.7400
+  Epoch  10, Loss: 0.3038, Accuracy: 0.9200
+  Epoch  20, Loss: 0.2153, Accuracy: 0.9333
+  Epoch  30, Loss: 0.1873, Accuracy: 0.9333
+  Epoch  40, Loss: 0.1720, Accuracy: 0.9367
+  Epoch  49, Loss: 0.1631, Accuracy: 0.9433
+[W1] Round 12 pre-agg train acc: 0.9433
+[W1] Sending 155 weights for round 11...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 12 post-agg test acc: 0.7333
+
+
+=============== Round 13/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4236, Accuracy: 0.8400
+  Epoch  10, Loss: 0.2584, Accuracy: 0.9467
+  Epoch  20, Loss: 0.1746, Accuracy: 0.9733
+  Epoch  30, Loss: 0.1423, Accuracy: 0.9767
+  Epoch  40, Loss: 0.1252, Accuracy: 0.9833
+  Epoch  49, Loss: 0.1152, Accuracy: 0.9833
+[W1] Round 13 pre-agg train acc: 0.9833
+[W1] Sending 155 weights for round 12...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 13 post-agg test acc: 0.6667
+
+
+=============== Round 14/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.5061, Accuracy: 0.7733
+  Epoch  10, Loss: 0.2776, Accuracy: 0.9333
+  Epoch  20, Loss: 0.1902, Accuracy: 0.9467
+  Epoch  30, Loss: 0.1610, Accuracy: 0.9600
+  Epoch  40, Loss: 0.1452, Accuracy: 0.9600
+  Epoch  49, Loss: 0.1358, Accuracy: 0.9600
+[W1] Round 14 pre-agg train acc: 0.9600
+[W1] Sending 155 weights for round 13...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 14 post-agg test acc: 0.7667
+
+
+=============== Round 15/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4331, Accuracy: 0.8433
+  Epoch  10, Loss: 0.2570, Accuracy: 0.9533
+  Epoch  20, Loss: 0.1789, Accuracy: 0.9633
+  Epoch  30, Loss: 0.1511, Accuracy: 0.9667
+  Epoch  40, Loss: 0.1369, Accuracy: 0.9700
+  Epoch  49, Loss: 0.1287, Accuracy: 0.9700
+[W1] Round 15 pre-agg train acc: 0.9700
+[W1] Sending 155 weights for round 14...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 15 post-agg test acc: 0.7000
+
+
+=============== Round 16/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4715, Accuracy: 0.7933
+  Epoch  10, Loss: 0.2786, Accuracy: 0.9267
+  Epoch  20, Loss: 0.2015, Accuracy: 0.9367
+  Epoch  30, Loss: 0.1751, Accuracy: 0.9433
+  Epoch  40, Loss: 0.1599, Accuracy: 0.9533
+  Epoch  49, Loss: 0.1512, Accuracy: 0.9567
+[W1] Round 16 pre-agg train acc: 0.9567
+[W1] Sending 155 weights for round 15...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 16 post-agg test acc: 0.7667
+
+
+=============== Round 17/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4840, Accuracy: 0.7933
+  Epoch  10, Loss: 0.2693, Accuracy: 0.9367
+  Epoch  20, Loss: 0.1784, Accuracy: 0.9633
+  Epoch  30, Loss: 0.1470, Accuracy: 0.9667
+  Epoch  40, Loss: 0.1310, Accuracy: 0.9733
+  Epoch  49, Loss: 0.1217, Accuracy: 0.9767
+[W1] Round 17 pre-agg train acc: 0.9767
+[W1] Sending 155 weights for round 16...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 17 post-agg test acc: 0.7111
+
+
+=============== Round 18/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4638, Accuracy: 0.8200
+  Epoch  10, Loss: 0.2778, Accuracy: 0.9267
+  Epoch  20, Loss: 0.1876, Accuracy: 0.9567
+  Epoch  30, Loss: 0.1547, Accuracy: 0.9600
+  Epoch  40, Loss: 0.1381, Accuracy: 0.9633
+  Epoch  49, Loss: 0.1285, Accuracy: 0.9667
+[W1] Round 18 pre-agg train acc: 0.9667
+[W1] Sending 155 weights for round 17...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 18 post-agg test acc: 0.7222
+
+
+=============== Round 19/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4493, Accuracy: 0.8100
+  Epoch  10, Loss: 0.2605, Accuracy: 0.9433
+  Epoch  20, Loss: 0.1790, Accuracy: 0.9600
+  Epoch  30, Loss: 0.1519, Accuracy: 0.9633
+  Epoch  40, Loss: 0.1380, Accuracy: 0.9633
+  Epoch  49, Loss: 0.1299, Accuracy: 0.9667
+[W1] Round 19 pre-agg train acc: 0.9667
+[W1] Sending 155 weights for round 18...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 19 post-agg test acc: 0.7667
+
+
+=============== Round 20/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4435, Accuracy: 0.8133
+  Epoch  10, Loss: 0.2506, Accuracy: 0.9400
+  Epoch  20, Loss: 0.1765, Accuracy: 0.9600
+  Epoch  30, Loss: 0.1492, Accuracy: 0.9633
+  Epoch  40, Loss: 0.1335, Accuracy: 0.9700
+  Epoch  49, Loss: 0.1248, Accuracy: 0.9700
+[W1] Round 20 pre-agg train acc: 0.9700
+[W1] Sending 155 weights for round 19...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 20 post-agg test acc: 0.7222
+
+
+=============== Round 21/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4463, Accuracy: 0.8367
+  Epoch  10, Loss: 0.2545, Accuracy: 0.9500
+  Epoch  20, Loss: 0.1728, Accuracy: 0.9667
+  Epoch  30, Loss: 0.1455, Accuracy: 0.9633
+  Epoch  40, Loss: 0.1320, Accuracy: 0.9633
+  Epoch  49, Loss: 0.1245, Accuracy: 0.9733
+[W1] Round 21 pre-agg train acc: 0.9733
+[W1] Sending 155 weights for round 20...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 21 post-agg test acc: 0.7556
+
+
+=============== Round 22/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4246, Accuracy: 0.8433
+  Epoch  10, Loss: 0.2459, Accuracy: 0.9500
+  Epoch  20, Loss: 0.1708, Accuracy: 0.9567
+  Epoch  30, Loss: 0.1449, Accuracy: 0.9533
+  Epoch  40, Loss: 0.1302, Accuracy: 0.9667
+  Epoch  49, Loss: 0.1212, Accuracy: 0.9700
+[W1] Round 22 pre-agg train acc: 0.9700
+[W1] Sending 155 weights for round 21...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 22 post-agg test acc: 0.7444
+
+
+=============== Round 23/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4078, Accuracy: 0.8467
+  Epoch  10, Loss: 0.2410, Accuracy: 0.9433
+  Epoch  20, Loss: 0.1718, Accuracy: 0.9567
+  Epoch  30, Loss: 0.1472, Accuracy: 0.9600
+  Epoch  40, Loss: 0.1326, Accuracy: 0.9600
+  Epoch  49, Loss: 0.1247, Accuracy: 0.9567
+[W1] Round 23 pre-agg train acc: 0.9567
+[W1] Sending 155 weights for round 22...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 23 post-agg test acc: 0.7333
+
+
+=============== Round 24/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.4433, Accuracy: 0.7967
+  Epoch  10, Loss: 0.2715, Accuracy: 0.9300
+  Epoch  20, Loss: 0.1899, Accuracy: 0.9433
+  Epoch  30, Loss: 0.1613, Accuracy: 0.9533
+  Epoch  40, Loss: 0.1462, Accuracy: 0.9567
+  Epoch  49, Loss: 0.1377, Accuracy: 0.9567
+[W1] Round 24 pre-agg train acc: 0.9567
+[W1] Sending 155 weights for round 23...
+[W1] Applied aggregated weights (155 values).
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Round 24 post-agg test acc: 0.7333
+
+
+=============== Round 25/25 ===============
+[W1] Loading data...
+Dataset: [3, 8], Features: 15
+Training samples: 300, Test samples: 90
+[W1] Training (300 samples)...
+  Epoch   0, Loss: 0.3933, Accuracy: 0.8633
+  Epoch  10, Loss: 0.2495, Accuracy: 0.9400
+  Epoch  20, Loss: 0.1768, Accuracy: 0.9467
+  Epoch  30, Loss: 0.1509, Accuracy: 0.9567
+  Epoch  40, Loss: 0.1384, Accuracy: 0.9600
+  Epoch  49, Loss: 0.1313, Accuracy: 0.9667
+[W1] Round 25 pre-agg train acc: 0.9667
+[W1] Sending 155 weights for round 24...
+[W1] Done sending weights.
+[W1] Waiting for aggregated model...
+[W1] Applied aggregated weights (155 values).
+[W1] Round 25 post-agg test acc: 0.7111
+
+Results saved to worker_1_results.json
+
+All training rounds complete.
