@@ -89,9 +89,10 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 
     // Registers
-    register<int<32>>(1200) weight_accum;   // signed! 3 workers * 400 weights
-    register<bit<8>>(1)     round_bitmap;
+    register<int<32>>(1200) weight_accum;
+    register<bit<8>>(400)   weight_bitmap;   // one bitmap per weight index
     register<bit<8>>(1)     current_round;
+
 
     action drop() {
         mark_to_drop(standard_metadata);
@@ -118,48 +119,48 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.aggregation.isValid()) {
 
-            // --- Round check / reset ---
+            // --- Round check / reset all bitmaps ---
             bit<8> sw_round;
             current_round.read(sw_round, 0);
             if (sw_round != hdr.aggregation.round_num) {
-                round_bitmap.write(0, 8w0);
+                // Reset every per-index bitmap
+                // P4 can't loop, so use a recirculation trick or just rely on
+                // the accum reset below. We'll handle it by resetting bitmap
+                // at the same slot when we reset accumulators.
                 current_round.write(0, hdr.aggregation.round_num);
             }
 
             // --- Accumulate (signed) ---
-            bit<32> idx = (bit<32>)hdr.aggregation.worker_id * 400 +
-                          (bit<32>)hdr.aggregation.weight_index;
+            bit<32> widx = (bit<32>)hdr.aggregation.weight_index;
+            bit<32> idx  = (bit<32>)hdr.aggregation.worker_id * 400 + widx;
             int<32> cur;
             weight_accum.read(cur, idx);
-            // Cast incoming bit<32> to int<32> before adding
             int<32> incoming = (int<32>)hdr.aggregation.weight_value;
             weight_accum.write(idx, cur + incoming);
 
-            // --- Update bitmap ---
+            // --- Update per-index bitmap ---
             bit<8> bm;
-            round_bitmap.read(bm, 0);
+            weight_bitmap.read(bm, widx);
             bm = bm | hdr.aggregation.bitmap;
-            round_bitmap.write(0, bm);
+            weight_bitmap.write(widx, bm);
 
-            // --- Check if all 3 workers contributed ---
+            // --- Check if all 3 workers contributed for THIS index ---
             if (bm == 8w0x07) {
-                bit<32> widx = (bit<32>)hdr.aggregation.weight_index;
-
-                int<32> s0;
-                int<32> s1;
-                int<32> s2;
+                int<32> s0; int<32> s1; int<32> s2;
                 weight_accum.read(s0, 0 * 400 + widx);
                 weight_accum.read(s1, 1 * 400 + widx);
                 weight_accum.read(s2, 2 * 400 + widx);
 
-                // Signed sum — range is [-15000, 15000], no overflow for int<32>
-                int<32> total = s0 + s1 + s2;
-                
-                // Write result back into header as bit<32>
-                hdr.aggregation.weight_value = (bit<32>)total;
-                hdr.aggregation.worker_id    = 8w3;
-                hdr.aggregation.bitmap       = 8w0x07;
+                // Reset accumulators and bitmap for this index
+                weight_accum.write(0 * 400 + widx, (int<32>)0);
+                weight_accum.write(1 * 400 + widx, (int<32>)0);
+                weight_accum.write(2 * 400 + widx, (int<32>)0);
+                weight_bitmap.write(widx, 8w0);
 
+                int<32> total = s0 + s1 + s2;
+                hdr.aggregation.weight_value = (bit<32>)total;
+                hdr.aggregation.worker_id    = 8w0;
+                hdr.aggregation.bitmap       = 8w0x07;
                 broadcast();
 
             } else {
@@ -170,6 +171,7 @@ control MyIngress(inout headers hdr,
             ipv4_lpm.apply();
         }
     }
+
 }
 
 // ---------------------------------------------------------------------------
