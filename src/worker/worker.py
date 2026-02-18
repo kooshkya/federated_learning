@@ -2,10 +2,10 @@ import argparse
 import sys
 import threading
 import time
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
-from scapy.all import sniff
+from scapy.all import sniff, sendp, Ether, get_if_hwaddr
 from scapy.packet import Packet
 
 from config.config import AppConfig, load_config
@@ -14,7 +14,6 @@ from ml.model import SimpleNeuralNetwork
 from protocol.layers import Aggregation
 from utils.network import get_if
 from utils.tracker import ResultsTracker
-
 
 class Worker:
     def __init__(self, worker_id: int, config: AppConfig):
@@ -50,13 +49,39 @@ class Worker:
             print(f"Error in packet receiver: {e}", file=sys.stderr)
 
     def _handle_packet(self, pkt: Packet):
-        # TODO: Get aggregated weights and update the model
-        self.model.set_weights(None)
-        self.received_event.set()
+        if pkt.haslayer(Aggregation):
+            agg = pkt[Aggregation]
+            
+            # Ignore own packets
+            if agg.worker_id == self.worker_id:
+                return
+            
+            # Ignore packets from different rounds (basic sync mechanism)
+            if agg.round_id != self.current_round + 1:
+                return
+
+            # Decode weights: Int -> Float
+            scaling_factor = 10000.0
+            weights_received = np.array(agg.weights, dtype=np.float32) / scaling_factor
+            
+            print(f"  [+] Received weights from Worker {agg.worker_id}")
+            self.received_weights[agg.worker_id] = weights_received
+            
+            # If we received from all other workers, trigger event
+            if len(self.received_weights) == (self.config.protocol.num_workers - 1):
+                self.received_event.set()
 
     def send_model_weights(self):
-        # TODO: Send model weights to the network for aggregation
-        weights = self.model.get_weights()
+        print("  [>] Broadcasting weights...")
+        weights = self.model.get_weights() # Gets scaled integers
+        
+        # Broadcast to FF:FF:FF:FF:FF:FF
+        pkt = Ether(src=get_if_hwaddr(self.iface), dst="ff:ff:ff:ff:ff:ff") / \
+              Aggregation(round_id=self.current_round + 1, 
+                          worker_id=self.worker_id, 
+                          weights=weights)
+        
+        sendp(pkt, iface=self.iface, verbose=False)
 
     def run_training_round(self):
         print(f"Loading data for round {self.current_round + 1}...")
@@ -81,9 +106,31 @@ class Worker:
         train_acc = self.model.evaluate(X_train, y_train)
         self.results_tracker.add_round_results(self.current_round, loss, train_acc)
         print(f"Round {self.current_round + 1} - Pre-aggregation training accuracy: {train_acc:.4f}")
+        
+        # 1. Send Weights
         self.send_model_weights()
-        print("Waiting for aggregated model from server...")
-        self.received_event.wait()
+        
+        # 2. Wait for peers
+        print("Waiting for aggregated model from peers...")
+        self.received_event.wait(timeout=60)
+        
+        # 3. Aggregate
+        # Get own weights manually (as floats) to mix with received floats
+        own_weights = np.concatenate([
+            self.model.W1.flatten(), self.model.b1.flatten(),
+            self.model.W2.flatten(), self.model.b2.flatten()
+        ])
+        
+        all_weights = [own_weights]
+        for w in self.received_weights.values():
+            all_weights.append(w)
+            
+        print(f"  Aggregating {len(all_weights)} models...")
+        avg_weights = np.mean(all_weights, axis=0)
+        
+        # 4. Update
+        self.model.set_weights(avg_weights.tolist())
+
         post_acc = self.model.evaluate(X_test, y_test)
         print(f"Round {self.current_round + 1} - Post-aggregation test accuracy: {post_acc:.4f}\n")
 
@@ -108,13 +155,3 @@ if __name__ == "__main__":
     parser.add_argument('worker_id', type=int, help='Worker ID (1-indexed)')
     parser.add_argument('--config', type=str, default='config/config.json', help='Path to the configuration file')
     args = parser.parse_args()
-
-    try:
-        app_config = load_config(args.config)
-    except (FileNotFoundError, KeyError, TypeError):
-        sys.exit(1)
-
-    np.random.seed(42 + args.worker_id)
-
-    worker = Worker(worker_id=args.worker_id, config=app_config)
-    worker.start()

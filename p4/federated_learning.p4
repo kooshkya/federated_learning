@@ -5,14 +5,41 @@
 const bit<16> TYPE_IPV4 = 0x800;
 const bit<16> TYPE_AGGREGATION = 0x1234;
 
-// TODO: Define headers needed for regular IPv4 routing and aggregation
-
 struct metadata {
-    // TODO
+    // No specific metadata needed for simple L2/broadcast
 }
 
 struct headers {
-    // TODO
+    ethernet_t ethernet;
+    ipv4_t     ipv4;
+    aggregation_t aggregation;
+}
+
+struct ethernet_t {
+    bit<48> dstAddr;
+    bit<48> srcAddr;
+    bit<16> etherType;
+}
+
+struct ipv4_t {
+    bit<4>  version;
+    bit<4>  ihl;
+    bit<8>  diffserv;
+    bit<16> totalLen;
+    bit<16> identification;
+    bit<3>  flags;
+    bit<13> fragOffset;
+    bit<8>  ttl;
+    bit<8>  protocol;
+    bit<16> hdrChecksum;
+    bit<32> srcAddr;
+    bit<32> dstAddr;
+}
+
+struct aggregation_t {
+    bit<32> round_id;
+    bit<32> worker_id;
+    // Weights are variable length payload in P4 terms, handled by parser implicitly or not parsed
 }
 
 parser MyParser(packet_in packet,
@@ -20,7 +47,24 @@ parser MyParser(packet_in packet,
                 inout metadata meta,
                 inout standard_metadata_t standard_metadata) {
 
-    // TODO
+    state start {
+        packet.extract(hdr.ethernet);
+        transition select(hdr.ethernet.etherType) {
+            TYPE_IPV4 : parse_ipv4;
+            TYPE_AGGREGATION : parse_aggregation;
+            default : accept;
+        }
+    }
+
+    state parse_ipv4 {
+        packet.extract(hdr.ipv4);
+        transition accept;
+    }
+
+    state parse_aggregation {
+        packet.extract(hdr.aggregation);
+        transition accept;
+    }
 }
 
 control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
@@ -31,29 +75,62 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
-    // TODO
-    apply {}
+    action drop() {
+        mark_to_drop(standard_metadata);
+    }
+
+    action l2_forward(bit<9> port) {
+        standard_metadata.egress_spec = port;
+    }
+
+    table mac_forward {
+        key = {
+            hdr.ethernet.dstAddr : exact;
+        }
+        actions = {
+            l2_forward;
+            drop;
+        }
+        size = 1024;
+    }
+
+    apply {
+        // Broadcast logic for FL weight synchronization
+        if (hdr.ethernet.dstAddr == 48'hffffffffffff) {
+            // Set multicast group 1 (defined in switch-commands to flood all ports)
+            standard_metadata.mcast_grp = 1;
+        } else {
+            mac_forward.apply();
+        }
+    }
 }
 
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    // TODO
     apply {}
-
 }
 
 control MyComputeChecksum(inout headers hdr, inout metadata meta) {
-    // TODO
-     apply {}
+     apply {
+        update_checksum(
+            hdr.ipv4.isValid(),
+            { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffserv, hdr.ipv4.totalLen,
+              hdr.ipv4.identification, hdr.ipv4.flags, hdr.ipv4.fragOffset,
+              hdr.ipv4.ttl, hdr.ipv4.protocol, hdr.ipv4.srcAddr, hdr.ipv4.dstAddr },
+            hdr.ipv4.hdrChecksum,
+            HashAlgorithm.csum16);
+    }
 }
 
 control MyDeparser(packet_out packet, in headers hdr) {
-    // TODO
-    apply {}
+    apply {
+        packet.emit(hdr.ethernet);
+        packet.emit(hdr.ipv4);
+        packet.emit(hdr.aggregation);
+    }
 }
 
-//switch architecture
 V1Switch(
 MyParser(),
 MyVerifyChecksum(),
