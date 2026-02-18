@@ -6,7 +6,7 @@ const bit<16> TYPE_IPV4 = 0x800;
 const bit<16> TYPE_AGGREGATION = 0x1234;
 
 const bit<8> NUM_WORKERS = 3;
-const bit<16> MAX_WEIGHTS = 512;
+const bit<32> MAX_WEIGHTS = 512;
 
 /* ================= HEADERS ================= */
 
@@ -43,7 +43,7 @@ header aggregation_t {
 
 struct metadata {
     bit<32> current_sum;
-    bit<8> bitmap;
+    bit<8>  bitmap;
 }
 
 struct headers {
@@ -100,12 +100,12 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
+    /* ---------- Proper drop ---------- */
     action drop() {
-        mark_to_drop();
+        mark_to_drop(standard_metadata);
     }
 
     /* ---------- IPv4 forwarding ---------- */
-
     action ipv4_forward(bit<48> dstAddr, bit<9> port) {
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
@@ -121,7 +121,6 @@ control MyIngress(inout headers hdr,
     }
 
     /* ---------- Broadcast ---------- */
-
     action broadcast() {
         standard_metadata.egress_spec = 0xFFFF;
     }
@@ -130,21 +129,31 @@ control MyIngress(inout headers hdr,
 
     action process_weight() {
 
+        /* Read registers */
         weight_sums.read(meta.current_sum, hdr.aggregation.weight_index);
         weight_bitmap.read(meta.bitmap, hdr.aggregation.weight_index);
 
+        /* Accumulate */
         meta.current_sum = meta.current_sum + hdr.aggregation.value;
 
-        meta.bitmap = meta.bitmap | (1 << (hdr.aggregation.worker_id - 1));
+        /* Compute worker bit safely */
+        bit<8> worker_mask = (bit<8>)1 << (hdr.aggregation.worker_id - 1);
+        meta.bitmap = meta.bitmap | worker_mask;
 
+        /* Write back */
         weight_sums.write(hdr.aggregation.weight_index, meta.current_sum);
         weight_bitmap.write(hdr.aggregation.weight_index, meta.bitmap);
 
+        /* All 3 workers? bitmap == 0b111 */
         if (meta.bitmap == 0b111) {
-            bit<32> avg = meta.current_sum / NUM_WORKERS;
+
+            /* Avoid width mismatch */
+            bit<32> divisor = (bit<32>)NUM_WORKERS;
+            bit<32> avg = meta.current_sum / divisor;
 
             hdr.aggregation.value = avg;
 
+            /* Reset registers */
             weight_sums.write(hdr.aggregation.weight_index, 0);
             weight_bitmap.write(hdr.aggregation.weight_index, 0);
 
