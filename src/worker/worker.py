@@ -238,6 +238,7 @@ def main():
     )
 
     worker = Worker(worker_id=args.worker_id, config=config)
+    time.sleep(5)
     worker.run(X_train, y_train)
 
 
