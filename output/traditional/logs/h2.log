@@ -1,0 +1,356 @@
+Dataset: (1, 7), Features: 15
+Training samples: 300, Test samples: 90
+[Worker 2] Listening on h2-eth0 for aggregation packets...
+
+[Worker 2] === Round 1/25 ===
+  Epoch   0, Loss: 1.2023, Accuracy: 0.0133
+  Epoch  10, Loss: 1.0996, Accuracy: 0.2400
+  Epoch  20, Loss: 0.9612, Accuracy: 0.8700
+  Epoch  30, Loss: 0.8361, Accuracy: 0.9400
+  Epoch  40, Loss: 0.6944, Accuracy: 0.9500
+  Epoch  49, Loss: 0.5447, Accuracy: 0.9600
+[Worker 2] Local — Loss: 0.5276, Acc: 0.9600
+[Worker 2] Sending 155 weight packets for round 0...
+[Worker 2] Got complete weights from worker 1 for round 0
+[Worker 2] Got complete weights from worker 3 for round 0
+[Worker 2] Done sending weights.
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 2/25 ===
+  Epoch   0, Loss: 0.8743, Accuracy: 0.5600
+  Epoch  10, Loss: 0.7349, Accuracy: 0.8800
+  Epoch  20, Loss: 0.5605, Accuracy: 0.9633
+  Epoch  30, Loss: 0.3879, Accuracy: 0.9633
+  Epoch  40, Loss: 0.2603, Accuracy: 0.9633
+  Epoch  49, Loss: 0.1970, Accuracy: 0.9667
+[Worker 2] Local — Loss: 0.1929, Acc: 0.9667
+[Worker 2] Sending 155 weight packets for round 1...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 1
+[Worker 2] Got complete weights from worker 1 for round 1
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 3/25 ===
+  Epoch   0, Loss: 0.6159, Accuracy: 0.8600
+  Epoch  10, Loss: 0.4010, Accuracy: 0.9700
+  Epoch  20, Loss: 0.2502, Accuracy: 0.9667
+  Epoch  30, Loss: 0.1780, Accuracy: 0.9667
+  Epoch  40, Loss: 0.1461, Accuracy: 0.9667
+  Epoch  49, Loss: 0.1302, Accuracy: 0.9700
+[Worker 2] Local — Loss: 0.1288, Acc: 0.9700
+[Worker 2] Sending 155 weight packets for round 2...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 2
+[Worker 2] Got complete weights from worker 1 for round 2
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 4/25 ===
+  Epoch   0, Loss: 0.4908, Accuracy: 0.8633
+  Epoch  10, Loss: 0.3065, Accuracy: 0.9633
+  Epoch  20, Loss: 0.1894, Accuracy: 0.9700
+  Epoch  30, Loss: 0.1427, Accuracy: 0.9733
+  Epoch  40, Loss: 0.1205, Accuracy: 0.9733
+  Epoch  49, Loss: 0.1089, Accuracy: 0.9733
+[Worker 2] Local — Loss: 0.1079, Acc: 0.9733
+[Worker 2] Sending 155 weight packets for round 3...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 3
+[Worker 2] Got complete weights from worker 1 for round 3
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 5/25 ===
+  Epoch   0, Loss: 0.4944, Accuracy: 0.8333
+  Epoch  10, Loss: 0.2665, Accuracy: 0.9633
+  Epoch  20, Loss: 0.1589, Accuracy: 0.9733
+  Epoch  30, Loss: 0.1236, Accuracy: 0.9733
+  Epoch  40, Loss: 0.1063, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0969, Accuracy: 0.9733
+[Worker 2] Local — Loss: 0.0961, Acc: 0.9733
+[Worker 2] Sending 155 weight packets for round 4...
+[Worker 2] Got complete weights from worker 3 for round 4
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 4
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 6/25 ===
+  Epoch   0, Loss: 0.4831, Accuracy: 0.8300
+  Epoch  10, Loss: 0.2338, Accuracy: 0.9700
+  Epoch  20, Loss: 0.1390, Accuracy: 0.9733
+  Epoch  30, Loss: 0.1122, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0984, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0903, Accuracy: 0.9733
+[Worker 2] Local — Loss: 0.0895, Acc: 0.9733
+[Worker 2] Sending 155 weight packets for round 5...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 5
+[Worker 2] Got complete weights from worker 1 for round 5
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 7/25 ===
+  Epoch   0, Loss: 0.4855, Accuracy: 0.8300
+  Epoch  10, Loss: 0.2129, Accuracy: 0.9733
+  Epoch  20, Loss: 0.1256, Accuracy: 0.9733
+  Epoch  30, Loss: 0.1040, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0928, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0859, Accuracy: 0.9733
+[Worker 2] Local — Loss: 0.0852, Acc: 0.9733
+[Worker 2] Sending 155 weight packets for round 6...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 6
+[Worker 2] Got complete weights from worker 1 for round 6
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 8/25 ===
+  Epoch   0, Loss: 0.4865, Accuracy: 0.8300
+  Epoch  10, Loss: 0.1966, Accuracy: 0.9733
+  Epoch  20, Loss: 0.1173, Accuracy: 0.9733
+  Epoch  30, Loss: 0.0988, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0888, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0825, Accuracy: 0.9733
+[Worker 2] Local — Loss: 0.0820, Acc: 0.9733
+[Worker 2] Sending 155 weight packets for round 7...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 7
+[Worker 2] Got complete weights from worker 1 for round 7
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 9/25 ===
+  Epoch   0, Loss: 0.4819, Accuracy: 0.8367
+  Epoch  10, Loss: 0.1856, Accuracy: 0.9733
+  Epoch  20, Loss: 0.1114, Accuracy: 0.9733
+  Epoch  30, Loss: 0.0949, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0858, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0798, Accuracy: 0.9733
+[Worker 2] Local — Loss: 0.0792, Acc: 0.9733
+[Worker 2] Sending 155 weight packets for round 8...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 8
+[Worker 2] Got complete weights from worker 3 for round 8
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 10/25 ===
+  Epoch   0, Loss: 0.4792, Accuracy: 0.8400
+  Epoch  10, Loss: 0.1785, Accuracy: 0.9733
+  Epoch  20, Loss: 0.1072, Accuracy: 0.9733
+  Epoch  30, Loss: 0.0917, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0831, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0774, Accuracy: 0.9733
+[Worker 2] Local — Loss: 0.0768, Acc: 0.9733
+[Worker 2] Sending 155 weight packets for round 9...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 9
+[Worker 2] Got complete weights from worker 3 for round 9
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 11/25 ===
+  Epoch   0, Loss: 0.4673, Accuracy: 0.8433
+  Epoch  10, Loss: 0.1726, Accuracy: 0.9767
+  Epoch  20, Loss: 0.1042, Accuracy: 0.9733
+  Epoch  30, Loss: 0.0893, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0810, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0755, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0750, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 10...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 10
+[Worker 2] Got complete weights from worker 3 for round 10
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 12/25 ===
+  Epoch   0, Loss: 0.4562, Accuracy: 0.8533
+  Epoch  10, Loss: 0.1679, Accuracy: 0.9767
+  Epoch  20, Loss: 0.1019, Accuracy: 0.9733
+  Epoch  30, Loss: 0.0874, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0794, Accuracy: 0.9733
+  Epoch  49, Loss: 0.0740, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0735, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 11...
+[Worker 2] Got complete weights from worker 1 for round 11
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 11
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 13/25 ===
+  Epoch   0, Loss: 0.4444, Accuracy: 0.8733
+  Epoch  10, Loss: 0.1644, Accuracy: 0.9767
+  Epoch  20, Loss: 0.0999, Accuracy: 0.9733
+  Epoch  30, Loss: 0.0859, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0781, Accuracy: 0.9767
+  Epoch  49, Loss: 0.0728, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0723, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 12...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 12
+[Worker 2] Got complete weights from worker 3 for round 12
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 14/25 ===
+  Epoch   0, Loss: 0.4328, Accuracy: 0.8867
+  Epoch  10, Loss: 0.1610, Accuracy: 0.9767
+  Epoch  20, Loss: 0.0980, Accuracy: 0.9733
+  Epoch  30, Loss: 0.0844, Accuracy: 0.9733
+  Epoch  40, Loss: 0.0767, Accuracy: 0.9767
+  Epoch  49, Loss: 0.0716, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0711, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 13...
+[Worker 2] Got complete weights from worker 3 for round 13
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 13
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 15/25 ===
+  Epoch   0, Loss: 0.4233, Accuracy: 0.9033
+  Epoch  10, Loss: 0.1582, Accuracy: 0.9767
+  Epoch  20, Loss: 0.0962, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0829, Accuracy: 0.9767
+  Epoch  40, Loss: 0.0754, Accuracy: 0.9767
+  Epoch  49, Loss: 0.0704, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0699, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 14...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 14
+[Worker 2] Got complete weights from worker 1 for round 14
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 16/25 ===
+  Epoch   0, Loss: 0.4156, Accuracy: 0.9067
+  Epoch  10, Loss: 0.1561, Accuracy: 0.9767
+  Epoch  20, Loss: 0.0947, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0816, Accuracy: 0.9767
+  Epoch  40, Loss: 0.0741, Accuracy: 0.9767
+  Epoch  49, Loss: 0.0692, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0687, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 15...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 15
+[Worker 2] Got complete weights from worker 1 for round 15
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 17/25 ===
+  Epoch   0, Loss: 0.4092, Accuracy: 0.9100
+  Epoch  10, Loss: 0.1540, Accuracy: 0.9767
+  Epoch  20, Loss: 0.0933, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0804, Accuracy: 0.9767
+  Epoch  40, Loss: 0.0730, Accuracy: 0.9767
+  Epoch  49, Loss: 0.0681, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0676, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 16...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 16
+[Worker 2] Got complete weights from worker 1 for round 16
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 18/25 ===
+  Epoch   0, Loss: 0.4034, Accuracy: 0.9133
+  Epoch  10, Loss: 0.1523, Accuracy: 0.9767
+  Epoch  20, Loss: 0.0920, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0793, Accuracy: 0.9767
+  Epoch  40, Loss: 0.0719, Accuracy: 0.9767
+  Epoch  49, Loss: 0.0671, Accuracy: 0.9767
+[Worker 2] Local — Loss: 0.0666, Acc: 0.9767
+[Worker 2] Sending 155 weight packets for round 17...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 17
+[Worker 2] Got complete weights from worker 1 for round 17
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 19/25 ===
+  Epoch   0, Loss: 0.3971, Accuracy: 0.9100
+  Epoch  10, Loss: 0.1506, Accuracy: 0.9767
+  Epoch  20, Loss: 0.0909, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0784, Accuracy: 0.9767
+  Epoch  40, Loss: 0.0711, Accuracy: 0.9800
+  Epoch  49, Loss: 0.0662, Accuracy: 0.9800
+[Worker 2] Local — Loss: 0.0657, Acc: 0.9800
+[Worker 2] Sending 155 weight packets for round 18...
+[Worker 2] Got complete weights from worker 1 for round 18
+[Worker 2] Got complete weights from worker 3 for round 18
+[Worker 2] Done sending weights.
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 20/25 ===
+  Epoch   0, Loss: 0.3921, Accuracy: 0.9100
+  Epoch  10, Loss: 0.1489, Accuracy: 0.9800
+  Epoch  20, Loss: 0.0898, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0774, Accuracy: 0.9767
+  Epoch  40, Loss: 0.0702, Accuracy: 0.9800
+  Epoch  49, Loss: 0.0654, Accuracy: 0.9800
+[Worker 2] Local — Loss: 0.0649, Acc: 0.9800
+[Worker 2] Sending 155 weight packets for round 19...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 19
+[Worker 2] Got complete weights from worker 3 for round 19
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 21/25 ===
+  Epoch   0, Loss: 0.3881, Accuracy: 0.9100
+  Epoch  10, Loss: 0.1474, Accuracy: 0.9800
+  Epoch  20, Loss: 0.0887, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0766, Accuracy: 0.9767
+  Epoch  40, Loss: 0.0694, Accuracy: 0.9800
+  Epoch  49, Loss: 0.0646, Accuracy: 0.9800
+[Worker 2] Local — Loss: 0.0642, Acc: 0.9800
+[Worker 2] Sending 155 weight packets for round 20...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 20
+[Worker 2] Got complete weights from worker 1 for round 20
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 22/25 ===
+  Epoch   0, Loss: 0.3852, Accuracy: 0.9100
+  Epoch  10, Loss: 0.1457, Accuracy: 0.9800
+  Epoch  20, Loss: 0.0878, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0758, Accuracy: 0.9800
+  Epoch  40, Loss: 0.0688, Accuracy: 0.9800
+  Epoch  49, Loss: 0.0640, Accuracy: 0.9800
+[Worker 2] Local — Loss: 0.0636, Acc: 0.9800
+[Worker 2] Sending 155 weight packets for round 21...
+[Worker 2] Got complete weights from worker 3 for round 21
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 21
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 23/25 ===
+  Epoch   0, Loss: 0.3814, Accuracy: 0.9100
+  Epoch  10, Loss: 0.1443, Accuracy: 0.9800
+  Epoch  20, Loss: 0.0871, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0752, Accuracy: 0.9800
+  Epoch  40, Loss: 0.0682, Accuracy: 0.9800
+  Epoch  49, Loss: 0.0635, Accuracy: 0.9800
+[Worker 2] Local — Loss: 0.0631, Acc: 0.9800
+[Worker 2] Sending 155 weight packets for round 22...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 3 for round 22
+[Worker 2] Got complete weights from worker 1 for round 22
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 24/25 ===
+  Epoch   0, Loss: 0.3776, Accuracy: 0.9133
+  Epoch  10, Loss: 0.1432, Accuracy: 0.9800
+  Epoch  20, Loss: 0.0865, Accuracy: 0.9767
+  Epoch  30, Loss: 0.0746, Accuracy: 0.9800
+  Epoch  40, Loss: 0.0678, Accuracy: 0.9800
+  Epoch  49, Loss: 0.0631, Accuracy: 0.9800
+[Worker 2] Local — Loss: 0.0626, Acc: 0.9800
+[Worker 2] Sending 155 weight packets for round 23...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 23
+[Worker 2] Got complete weights from worker 3 for round 23
+[Worker 2] Applied federated average.
+
+[Worker 2] === Round 25/25 ===
+  Epoch   0, Loss: 0.3749, Accuracy: 0.9133
+  Epoch  10, Loss: 0.1424, Accuracy: 0.9800
+  Epoch  20, Loss: 0.0859, Accuracy: 0.9800
+  Epoch  30, Loss: 0.0742, Accuracy: 0.9800
+  Epoch  40, Loss: 0.0674, Accuracy: 0.9800
+  Epoch  49, Loss: 0.0627, Accuracy: 0.9800
+[Worker 2] Local — Loss: 0.0623, Acc: 0.9800
+[Worker 2] Sending 155 weight packets for round 24...
+[Worker 2] Done sending weights.
+[Worker 2] Got complete weights from worker 1 for round 24
+[Worker 2] Got complete weights from worker 3 for round 24
+[Worker 2] Applied federated average.
+Results saved to worker_2_results.json
+
+[Worker 2] Training complete.
