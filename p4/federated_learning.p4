@@ -89,12 +89,10 @@ register<bit<8>>(1)     round_bitmap;   // which workers sent weights this round
 register<bit<8>>(1)     current_round;  // round the switch is currently aggregating
 
 /*-----------  Ingress  -----------*/
-
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
-    // ---- IPv4 forwarding table ----
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -113,56 +111,55 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    // ---- Aggregation handling ----
-    action store_weight() {
-        // accumulate weight into register slot worker_id*400 + weight_index
-        bit<32> idx = (bit<32>)hdr.aggregation.worker_id * 400 + (bit<32>)hdr.aggregation.weight_index;
-        bit<32> cur;
-        weight_accum.read(cur, idx);
-        weight_accum.write(idx, cur + hdr.aggregation.weight_value);
-    }
-
-    action update_bitmap() {
-        bit<8> bm;
-        round_bitmap.read(bm, 0);
-        bm = bm | hdr.aggregation.bitmap;
-        round_bitmap.write(0, bm);
-    }
-
     action broadcast() {
         standard_metadata.mcast_grp = 1;
     }
 
     apply {
         if (hdr.aggregation.isValid()) {
-            // Check round consistency — reset accumulator if new round
             bit<8> sw_round;
             current_round.read(sw_round, 0);
             if (sw_round != hdr.aggregation.round_num) {
-                // New round: reset bitmap (accumulators reset by workers sending first packet)
                 round_bitmap.write(0, 0);
                 current_round.write(0, hdr.aggregation.round_num);
             }
 
-            store_weight();
-            update_bitmap();
+            // Accumulate: store each worker's weight in its own slot
+            bit<32> idx = (bit<32>)hdr.aggregation.worker_id * 400 +
+                          (bit<32>)hdr.aggregation.weight_index;
+            bit<32> cur;
+            weight_accum.read(cur, idx);
+            weight_accum.write(idx, cur + hdr.aggregation.weight_value);
 
-            // Check if all 3 workers have sent this weight_index
+            // Update bitmap
             bit<8> bm;
             round_bitmap.read(bm, 0);
+            bm = bm | hdr.aggregation.bitmap;
+            round_bitmap.write(0, bm);
 
             if (bm == 0x07) {
-                // All workers sent — compute average for this weight_index and broadcast
+                // Read all three workers' values for this weight index
+                bit<32> widx = (bit<32>)hdr.aggregation.weight_index;
                 bit<32> s0;
                 bit<32> s1;
                 bit<32> s2;
-                bit<32> widx = (bit<32>)hdr.aggregation.weight_index;
                 weight_accum.read(s0, 0 * 400 + widx);
                 weight_accum.read(s1, 1 * 400 + widx);
                 weight_accum.read(s2, 2 * 400 + widx);
-                bit<32> avg = (s0 + s1 + s2) / 3;
+
+                // Compute sum
+                bit<32> total = s0 + s1 + s2;
+
+                // Divide by 3 using: x/3 ≈ (x * 43691) >> 17
+                // 43691 = 0xAAAAB, works for values up to ~98303 without overflow in 64-bit
+                // Our max sum = 3 * 5000 = 15000, so this is safe
+                // We need 64-bit intermediate to avoid overflow
+                bit<64> total64 = (bit<64>)total;
+                bit<64> avg64 = (total64 * 43691) >> 17;
+                bit<32> avg = (bit<32>)avg64;
+
                 hdr.aggregation.weight_value = avg;
-                hdr.aggregation.worker_id = 0;  // from switch
+                hdr.aggregation.worker_id = 0;
                 broadcast();
             } else {
                 drop();
