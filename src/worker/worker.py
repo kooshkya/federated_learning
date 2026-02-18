@@ -5,13 +5,13 @@ import time
 from typing import Dict
 
 import numpy as np
-from scapy.all import sniff
+from scapy.all import sniff, sendp, Ether
 from scapy.packet import Packet
 
 from config.config import AppConfig, load_config
 from ml.data_loader import load_multi_mnist
 from ml.model import SimpleNeuralNetwork
-from protocol.layers import Aggregation
+from protocol.layers import Aggregation, TYPE_AGGREGATION
 from utils.network import get_if
 from utils.tracker import ResultsTracker
 
@@ -50,13 +50,52 @@ class Worker:
             print(f"Error in packet receiver: {e}", file=sys.stderr)
 
     def _handle_packet(self, pkt: Packet):
-        # TODO: Get aggregated weights and update the model
-        self.model.set_weights(None)
-        self.received_event.set()
+        if not pkt.haslayer(Aggregation):
+            return
+
+        agg = pkt[Aggregation]
+
+        # Only process aggregated packets (worker_id == 0 set by switch)
+        if agg.worker_id != 0:
+            return
+
+        weight_index = agg.weight_index
+        scaled_value = agg.weight_value
+
+        # Convert back to float
+        value = scaled_value / 10000.0
+
+        self.received_weights[weight_index] = value
+
+        if len(self.received_weights) == agg.total_weights:
+            ordered = [self.received_weights[i] for i in range(agg.total_weights)]
+            self.model.set_weights(np.array(ordered))
+            self.received_event.set()
+
 
     def send_model_weights(self):
-        # TODO: Send model weights to the network for aggregation
         weights = self.model.get_weights()
+        total_weights = len(weights)
+
+        print(f"Sending {total_weights} weights...")
+
+        for i, w in enumerate(weights):
+            scaled = int(w * 10000)
+
+            pkt = (
+                Ether(dst="ff:ff:ff:ff:ff:ff", type=TYPE_AGGREGATION)
+                / Aggregation(
+                    round_num=self.current_round,
+                    worker_id=self.worker_id,
+                    bitmap=self.bitmap_position,
+                    weight_index=i,
+                    total_weights=total_weights,
+                    weight_value=scaled
+                )
+            )
+
+            sendp(pkt, iface=self.iface, verbose=False)
+            time.sleep(0.001)
 
     def run_training_round(self):
         print(f"Loading data for round {self.current_round + 1}...")
