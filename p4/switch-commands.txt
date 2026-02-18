@@ -1,1 +1,7 @@
-TODO: commands to run at switch startup (fill Match+Action tables, etc...)
+mc_mgrp_create 1
+mc_node_create 0 1 2 3
+mc_node_associate 1 0
+
+table_add ipv4_lpm forward 10.0.0.1/32 => 1
+table_add ipv4_lpm forward 10.0.0.2/32 => 2
+table_add ipv4_lpm forward 10.0.0.3/32 => 3
