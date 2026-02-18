@@ -5,21 +5,13 @@
 const bit<16> TYPE_IPV4       = 0x800;
 const bit<16> TYPE_AGGREGATION = 0x1234;
 
-/*-----------  Headers  -----------*/
-
+// ---------------------------------------------------------------------------
+// Headers
+// ---------------------------------------------------------------------------
 header ethernet_t {
     bit<48> dstAddr;
     bit<48> srcAddr;
     bit<16> etherType;
-}
-
-header aggregation_t {
-    bit<8>  round_num;
-    bit<8>  worker_id;
-    bit<8>  bitmap;
-    bit<16> weight_index;
-    bit<16> total_weights;
-    bit<32> weight_value;   /* scaled: float * 10000, signed via two's complement */
 }
 
 header ipv4_t {
@@ -37,9 +29,16 @@ header ipv4_t {
     bit<32> dstAddr;
 }
 
-struct metadata {
-    bit<9>  ingress_port;
+header aggregation_t {
+    bit<8>  round_num;
+    bit<8>  worker_id;
+    bit<8>  bitmap;
+    bit<16> weight_index;
+    bit<16> total_weights;
+    bit<32> weight_value;
 }
+
+struct metadata {}
 
 struct headers {
     ethernet_t    ethernet;
@@ -47,8 +46,9 @@ struct headers {
     ipv4_t        ipv4;
 }
 
-/*-----------  Parser  -----------*/
-
+// ---------------------------------------------------------------------------
+// Parser
+// ---------------------------------------------------------------------------
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
@@ -65,7 +65,7 @@ parser MyParser(packet_in packet,
 
     state parse_aggregation {
         packet.extract(hdr.aggregation);
-        transition parse_ipv4;
+        transition accept;
     }
 
     state parse_ipv4 {
@@ -74,24 +74,26 @@ parser MyParser(packet_in packet,
     }
 }
 
-/*-----------  Verify Checksum  -----------*/
-
+// ---------------------------------------------------------------------------
+// Verify Checksum
+// ---------------------------------------------------------------------------
 control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
     apply {}
 }
 
-/*-----------  Registers  -----------*/
-
-// 3 workers, max 400 weights each — index = worker_id*400 + weight_index
-// weight_value accumulator (signed 64-bit stored as bit<64>)
-register<bit<32>>(1200) weight_accum;   // sum of scaled weights (fits: 3 * 10000 * 0.5 * scale ok with 32-bit? max sum = 3*5000=15000, fine)
-register<bit<8>>(1)     round_bitmap;   // which workers sent weights this round
-register<bit<8>>(1)     current_round;  // round the switch is currently aggregating
-
-/*-----------  Ingress  -----------*/
+// ---------------------------------------------------------------------------
+// Ingress
+// ---------------------------------------------------------------------------
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
+
+    // Registers
+    // weight_accum[worker_id * MAX_WEIGHTS + weight_index]
+    // MAX_WEIGHTS = 400 (15*8 + 8*3 = 120+24 = 144 weights, round up to 400)
+    register<bit<32>>(1200) weight_accum;  // 3 workers * 400 weights
+    register<bit<8>>(1)     round_bitmap;
+    register<bit<8>>(1)     current_round;
 
     action drop() {
         mark_to_drop(standard_metadata);
@@ -117,6 +119,7 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.aggregation.isValid()) {
+            // Check/reset round
             bit<8> sw_round;
             current_round.read(sw_round, 0);
             if (sw_round != hdr.aggregation.round_num) {
@@ -124,7 +127,7 @@ control MyIngress(inout headers hdr,
                 current_round.write(0, hdr.aggregation.round_num);
             }
 
-            // Accumulate: store each worker's weight in its own slot
+            // Accumulate this worker's weight
             bit<32> idx = (bit<32>)hdr.aggregation.worker_id * 400 +
                           (bit<32>)hdr.aggregation.weight_index;
             bit<32> cur;
@@ -138,64 +141,70 @@ control MyIngress(inout headers hdr,
             round_bitmap.write(0, bm);
 
             if (bm == 0x07) {
-                // Read all three workers' values for this weight index
+                // All 3 workers sent this weight index — compute average
                 bit<32> widx = (bit<32>)hdr.aggregation.weight_index;
-                bit<32> s0;
-                bit<32> s1;
-                bit<32> s2;
+                bit<32> s0; bit<32> s1; bit<32> s2;
                 weight_accum.read(s0, 0 * 400 + widx);
                 weight_accum.read(s1, 1 * 400 + widx);
                 weight_accum.read(s2, 2 * 400 + widx);
 
-                // Compute sum
                 bit<32> total = s0 + s1 + s2;
 
-                // Divide by 3 using: x/3 ≈ (x * 43691) >> 17
-                // 43691 = 0xAAAAB, works for values up to ~98303 without overflow in 64-bit
-                // Our max sum = 3 * 5000 = 15000, so this is safe
-                // We need 64-bit intermediate to avoid overflow
+                // Divide by 3: x/3 ≈ (x * 43691) >> 17
                 bit<64> total64 = (bit<64>)total;
-                bit<64> avg64 = (total64 * 43691) >> 17;
-                bit<32> avg = (bit<32>)avg64;
+                bit<64> avg64   = (total64 * 43691) >> 17;
+                bit<32> avg     = (bit<32>)avg64;
 
                 hdr.aggregation.weight_value = avg;
-                hdr.aggregation.worker_id = 0;
+                hdr.aggregation.worker_id    = 0;
+                hdr.aggregation.bitmap       = 0x07;
                 broadcast();
             } else {
                 drop();
             }
+
         } else if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
         }
     }
 }
 
-/*-----------  Egress  -----------*/
-
+// ---------------------------------------------------------------------------
+// Egress
+// ---------------------------------------------------------------------------
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {}
 }
 
-/*-----------  Compute Checksum  -----------*/
-
+// ---------------------------------------------------------------------------
+// Compute Checksum
+// ---------------------------------------------------------------------------
 control MyComputeChecksum(inout headers hdr, inout metadata meta) {
     apply {
         update_checksum(
             hdr.ipv4.isValid(),
-            { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffserv,
-              hdr.ipv4.totalLen, hdr.ipv4.identification,
-              hdr.ipv4.flags, hdr.ipv4.fragOffset, hdr.ipv4.ttl,
-              hdr.ipv4.protocol, hdr.ipv4.srcAddr, hdr.ipv4.dstAddr },
+            { hdr.ipv4.version,
+              hdr.ipv4.ihl,
+              hdr.ipv4.diffserv,
+              hdr.ipv4.totalLen,
+              hdr.ipv4.identification,
+              hdr.ipv4.flags,
+              hdr.ipv4.fragOffset,
+              hdr.ipv4.ttl,
+              hdr.ipv4.protocol,
+              hdr.ipv4.srcAddr,
+              hdr.ipv4.dstAddr },
             hdr.ipv4.hdrChecksum,
             HashAlgorithm.csum16
         );
     }
 }
 
-/*-----------  Deparser  -----------*/
-
+// ---------------------------------------------------------------------------
+// Deparser
+// ---------------------------------------------------------------------------
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
@@ -204,8 +213,9 @@ control MyDeparser(packet_out packet, in headers hdr) {
     }
 }
 
-/*-----------  Switch  -----------*/
-
+// ---------------------------------------------------------------------------
+// Switch Architecture
+// ---------------------------------------------------------------------------
 V1Switch(
     MyParser(),
     MyVerifyChecksum(),

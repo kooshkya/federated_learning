@@ -3,8 +3,7 @@ from typing import List
 
 class SimpleNeuralNetwork:
     def __init__(self, input_size: int, hidden_size: int, output_size: int):
-        # Feel free to add what is needed for federated learning procedure
-        self.input_size = input_size
+        self.input_size  = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
 
@@ -19,37 +18,32 @@ class SimpleNeuralNetwork:
         self.z1, self.a1 = None, None
         self.z2, self.a2 = None, None
 
-    def _relu(self, x: np.ndarray) -> np.ndarray:
+    def _relu(self, x):
         return np.maximum(0, x)
 
-    def _softmax(self, x: np.ndarray) -> np.ndarray:
+    def _softmax(self, x):
         exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
         return exp_x / np.sum(exp_x, axis=1, keepdims=True)
 
-    def forward(self, X: np.ndarray) -> np.ndarray:
+    def forward(self, X):
         self.z1 = X @ self.W1 + self.b1
         self.a1 = self._relu(self.z1)
         self.z2 = self.a1 @ self.W2 + self.b2
         self.a2 = self._softmax(self.z2)
         return self.a2
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        probabilities = self.forward(X)
-        return np.argmax(probabilities, axis=1)
+    def predict(self, X):
+        return np.argmax(self.forward(X), axis=1)
 
-    def compute_loss(self, y_true_one_hot: np.ndarray, y_pred_probs: np.ndarray) -> float:
+    def compute_loss(self, y_true_one_hot, y_pred_probs):
         m = y_true_one_hot.shape[0]
-        log_probs = np.log(y_pred_probs + 1e-8)
-        loss = -np.sum(y_true_one_hot * log_probs) / m
-        return loss
+        return -np.sum(y_true_one_hot * np.log(y_pred_probs + 1e-8)) / m
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, learning_rate: float, momentum: float):
+    def train(self, X, y, epochs, learning_rate, momentum):
         m = X.shape[0]
         y_one_hot = np.eye(self.output_size)[y]
-
         for epoch in range(epochs):
             self.forward(X)
-
             dz2 = self.a2 - y_one_hot
             dW2, db2 = (self.a1.T @ dz2) / m, np.sum(dz2, axis=0) / m
             da1 = dz2 @ self.W2.T
@@ -61,53 +55,28 @@ class SimpleNeuralNetwork:
             self.vW2 = momentum * self.vW2 - learning_rate * dW2
             self.vb2 = momentum * self.vb2 - learning_rate * db2
 
-            self.W1 += self.vW1
-            self.b1 += self.vb1
-            self.W2 += self.vW2
-            self.b2 += self.vb2
+            self.W1 += self.vW1; self.b1 += self.vb1
+            self.W2 += self.vW2; self.b2 += self.vb2
 
-            clip_threshold = 0.5
-            np.clip(self.W1, -clip_threshold, clip_threshold, out=self.W1)
-            np.clip(self.W2, -clip_threshold, clip_threshold, out=self.W2)
+            clip = 0.5
+            np.clip(self.W1, -clip, clip, out=self.W1)
+            np.clip(self.W2, -clip, clip, out=self.W2)
 
             if epoch % 10 == 0 or epoch == epochs - 1:
                 loss = self.compute_loss(y_one_hot, self.a2)
-                accuracy = self.evaluate(X, y)
-                print(f"  Epoch {epoch:3d}, Loss: {loss:.4f}, Accuracy: {accuracy:.4f}")
+                acc  = self.evaluate(X, y)
+                print(f"  Epoch {epoch:3d}, Loss: {loss:.4f}, Accuracy: {acc:.4f}")
 
-    def evaluate(self, X: np.ndarray, y: np.ndarray) -> float:
-        y_pred = self.predict(X)
-        return np.mean(y_pred == y)
+    def evaluate(self, X, y):
+        return np.mean(self.predict(X) == y)
 
-    def get_weights(self):
-        # Flatten and concatenate all parameters
-        weights = [
-            self.W1.flatten(),
-            self.b1.flatten(),
-            self.W2.flatten(),
-            self.b2.flatten()
-        ]
-        return np.concatenate(weights)
+    def get_weights(self) -> List[np.ndarray]:
+        """Return all weights as a flat list of arrays: [W1, b1, W2, b2]."""
+        return [self.W1.copy(), self.b1.copy(), self.W2.copy(), self.b2.copy()]
 
-
-    def set_weights(self, flat_weights):
-        if flat_weights is None:
-            return
-
-        idx = 0
-
-        W1_size = self.input_size * self.hidden_size
-        self.W1 = flat_weights[idx:idx+W1_size].reshape(self.input_size, self.hidden_size)
-        idx += W1_size
-
-        b1_size = self.hidden_size
-        self.b1 = flat_weights[idx:idx+b1_size]
-        idx += b1_size
-
-        W2_size = self.hidden_size * self.output_size
-        self.W2 = flat_weights[idx:idx+W2_size].reshape(self.hidden_size, self.output_size)
-        idx += W2_size
-
-        b2_size = self.output_size
-        self.b2 = flat_weights[idx:idx+b2_size]
-
+    def set_weights(self, weights: List[np.ndarray]):
+        """Update model parameters from aggregated weight list [W1, b1, W2, b2]."""
+        self.W1 = weights[0].reshape(self.input_size,  self.hidden_size)
+        self.b1 = weights[1].reshape(self.hidden_size)
+        self.W2 = weights[2].reshape(self.hidden_size, self.output_size)
+        self.b2 = weights[3].reshape(self.output_size)

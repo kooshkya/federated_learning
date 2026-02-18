@@ -6,7 +6,11 @@
   "compiler_flags": ["-DDEBUG"],
   "topology": {
     "assignment_strategy": "mixed",
-    "links": [["h1", "s1"], ["h2", "s1"], ["h3", "s1"]],
+    "links": [
+      ["h1", "s1"],
+      ["h2", "s1"],
+      ["h3", "s1"]
+    ],
     "hosts": {
       "h1": {},
       "h2": {},
