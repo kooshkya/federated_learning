@@ -1,10 +1,12 @@
-# Create multicast group 1 for broadcast
+# Multicast Group 1 for Broadcast (ARP requests, etc.)
 mc_mgrp_create 1
-# Add ports 1, 2, 3 to the group (handle ID 0)
 mc_node_create 0 1 2 3
 mc_node_associate 1 0
 
-# Fill Forwarding Table (Static L2 Switching)
-table_add mac_forward l2_forward 00:00:0a:00:01:01 => 1
-table_add mac_forward l2_forward 00:00:0a:00:01:02 => 2
-table_add mac_forward l2_forward 00:00:0a:00:01:03 => 3
+# Forwarding Table (Unicast)
+# h1 (10.0.0.1) -> Port 1
+table_add mac_forward l2_forward 00:00:0a:00:00:01 => 1
+# h2 (10.0.0.2) -> Port 2
+table_add mac_forward l2_forward 00:00:0a:00:00:02 => 2
+# h3 (10.0.0.3) -> Port 3
+table_add mac_forward l2_forward 00:00:0a:00:00:03 => 3

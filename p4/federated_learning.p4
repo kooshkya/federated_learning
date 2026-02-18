@@ -3,16 +3,19 @@
 #include <v1model.p4>
 
 const bit<16> TYPE_IPV4 = 0x800;
+const bit<16> TYPE_ARP  = 0x0806;
 const bit<16> TYPE_AGGREGATION = 0x1234;
 
 struct metadata {
-    // No specific metadata needed for simple L2/broadcast
+    // Empty
 }
 
 struct headers {
     ethernet_t ethernet;
     ipv4_t     ipv4;
     aggregation_t aggregation;
+    // We don't need to modify ARP, but defining it ensures clean parsing
+    arp_t      arp; 
 }
 
 struct ethernet_t {
@@ -36,10 +39,21 @@ struct ipv4_t {
     bit<32> dstAddr;
 }
 
+struct arp_t {
+    bit<16> htype;
+    bit<16> ptype;
+    bit<8>  hlen;
+    bit<8>  plen;
+    bit<16> opcode;
+    bit<48> hwSrc;
+    bit<32> protoSrc;
+    bit<48> hwDst;
+    bit<32> protoDst;
+}
+
 struct aggregation_t {
     bit<32> round_id;
     bit<32> worker_id;
-    // Weights are variable length payload in P4 terms, handled by parser implicitly or not parsed
 }
 
 parser MyParser(packet_in packet,
@@ -51,6 +65,7 @@ parser MyParser(packet_in packet,
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
             TYPE_IPV4 : parse_ipv4;
+            TYPE_ARP  : parse_arp;
             TYPE_AGGREGATION : parse_aggregation;
             default : accept;
         }
@@ -58,6 +73,11 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
+        transition accept;
+    }
+
+    state parse_arp {
+        packet.extract(hdr.arp);
         transition accept;
     }
 
@@ -95,9 +115,8 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-        // Broadcast logic for FL weight synchronization
+        // Broadcast (ARP Requests, FL Broadcasts)
         if (hdr.ethernet.dstAddr == 48'hffffffffffff) {
-            // Set multicast group 1 (defined in switch-commands to flood all ports)
             standard_metadata.mcast_grp = 1;
         } else {
             mac_forward.apply();
@@ -127,6 +146,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.arp);
         packet.emit(hdr.aggregation);
     }
 }
