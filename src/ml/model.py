@@ -1,14 +1,14 @@
 import numpy as np
 from typing import List
 
+
 class SimpleNeuralNetwork:
     def __init__(self, input_size: int, hidden_size: int, output_size: int):
-        # Feel free to add what is needed for federated learning procedure
-        self.input_size = input_size
+        self.input_size  = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
 
-        self.W1 = np.random.randn(self.input_size, self.hidden_size) * 0.1
+        self.W1 = np.random.randn(self.input_size,  self.hidden_size) * 0.1
         self.b1 = np.zeros(self.hidden_size)
         self.W2 = np.random.randn(self.hidden_size, self.output_size) * 0.1
         self.b2 = np.zeros(self.output_size)
@@ -33,28 +33,32 @@ class SimpleNeuralNetwork:
         self.a2 = self._softmax(self.z2)
         return self.a2
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        probabilities = self.forward(X)
-        return np.argmax(probabilities, axis=1)
+    def compute_loss(self, y_one_hot: np.ndarray, y_pred: np.ndarray) -> float:
+        eps = 1e-15
+        return -np.mean(np.sum(y_one_hot * np.log(y_pred + eps), axis=1))
 
-    def compute_loss(self, y_true_one_hot: np.ndarray, y_pred_probs: np.ndarray) -> float:
-        m = y_true_one_hot.shape[0]
-        log_probs = np.log(y_pred_probs + 1e-8)
-        loss = -np.sum(y_true_one_hot * log_probs) / m
-        return loss
-
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, learning_rate: float, momentum: float):
+    def backward(self, X: np.ndarray, y_one_hot: np.ndarray):
         m = X.shape[0]
-        y_one_hot = np.eye(self.output_size)[y]
+        dz2 = (self.a2 - y_one_hot) / m
+        dW2 = self.a1.T @ dz2
+        db2 = np.sum(dz2, axis=0)
+        da1 = dz2 @ self.W2.T
+        dz1 = da1 * (self.z1 > 0)
+        dW1 = X.T @ dz1
+        db1 = np.sum(dz1, axis=0)
+        return dW1, db1, dW2, db2
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return np.argmax(self.forward(X), axis=1)
+
+    def train(self, X: np.ndarray, y: np.ndarray,
+              epochs: int, learning_rate: float, momentum: float):
+        num_classes = self.output_size
+        y_one_hot = np.eye(num_classes)[y]
 
         for epoch in range(epochs):
             self.forward(X)
-
-            dz2 = self.a2 - y_one_hot
-            dW2, db2 = (self.a1.T @ dz2) / m, np.sum(dz2, axis=0) / m
-            da1 = dz2 @ self.W2.T
-            dz1 = da1 * (self.z1 > 0)
-            dW1, db1 = (X.T @ dz1) / m, np.sum(dz1, axis=0) / m
+            dW1, db1, dW2, db2 = self.backward(X, y_one_hot)
 
             self.vW1 = momentum * self.vW1 - learning_rate * dW1
             self.vb1 = momentum * self.vb1 - learning_rate * db1
@@ -80,9 +84,12 @@ class SimpleNeuralNetwork:
         return np.mean(y_pred == y)
 
     def get_weights(self) -> List[np.ndarray]:
-        # TODO: Implement the logic to output current weights to send for aggregation
-        pass
+        """Return all trainable weights as a flat list of arrays."""
+        return [self.W1, self.b1, self.W2, self.b2]
 
-    def set_weights(self, weights):
-        # TODO: Implement the logic to get aggregated weights and update the model
-        pass
+    def set_weights(self, weights: List[np.ndarray]):
+        """Set model weights from a list of arrays (same order as get_weights)."""
+        self.W1 = weights[0].reshape(self.input_size,  self.hidden_size)
+        self.b1 = weights[1].reshape(self.hidden_size)
+        self.W2 = weights[2].reshape(self.hidden_size, self.output_size)
+        self.b2 = weights[3].reshape(self.output_size)
