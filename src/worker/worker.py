@@ -11,7 +11,7 @@ from scapy.packet import Packet
 from config.config import AppConfig, load_config
 from ml.data_loader import load_multi_mnist
 from ml.model import SimpleNeuralNetwork
-from protocol.layers import Aggregation, TYPE_AGGREGATION
+from protocol.layers import Aggregation, TYPE_AGGREGATION, SCALE
 from utils.network import get_if
 from utils.tracker import ResultsTracker
 
@@ -62,8 +62,7 @@ class Worker:
         weight_index = agg.weight_index
         scaled_value = agg.weight_value
 
-        # Convert back to float
-        value = scaled_value / 10000.0
+        value = scaled_value / SCALE
 
         self.received_weights[weight_index] = value
 
@@ -80,7 +79,7 @@ class Worker:
         print(f"Sending {total_weights} weights...")
 
         for i, w in enumerate(weights):
-            scaled = int(w * 10000)
+            scaled = int(w * SCALE)
 
             pkt = (
                 Ether(dst="ff:ff:ff:ff:ff:ff", type=TYPE_AGGREGATION)

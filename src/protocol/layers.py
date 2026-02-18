@@ -4,7 +4,7 @@ from scapy.fields import BitField
 # Constants to match P4
 TYPE_IPV4 = 0x800
 TYPE_AGGREGATION = 0x1234
-
+SCALE = 1_000_000
 
 class Aggregation(Packet):
     name = "Aggregation"
