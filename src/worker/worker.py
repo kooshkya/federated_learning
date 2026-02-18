@@ -65,7 +65,7 @@ class Worker:
         agg = pkt[Aggregation]
 
         # Only accept broadcast aggregation packets (worker_id == 0)
-        if agg.worker_id != 0:
+        if agg.worker_id != 3:
             return
         # Only accept packets for the current round
         if agg.round_num != self.current_round:
@@ -120,14 +120,12 @@ class Worker:
         total   = len(flat)
 
         src_mac = get_if_hwaddr(self.iface)
-        # Broadcast MAC for aggregation packets
+        
         dst_mac = "ff:ff:ff:ff:ff:ff"
 
         print(f"[W{self.worker_id}] Sending {total} weights for round {self.current_round}...")
         for idx, val in enumerate(flat):
             scaled = int(round(float(val) * SCALE_FACTOR))
-            # Clamp to 32-bit signed range (safe: max |val|=0.5 → ±5000)
-            scaled = max(-2**31, min(2**31 - 1, scaled))
 
             pkt = (
                 Ether(src=src_mac, dst=dst_mac, type=0x1234) /
