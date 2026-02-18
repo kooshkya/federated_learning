@@ -95,7 +95,6 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 }
 
 /* ================= INGRESS ================= */
-
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
@@ -118,51 +117,66 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    /* ---------- Multicast aggregation ---------- */
     action multicast_to_all() {
         standard_metadata.mcast_grp = 1;
     }
 
-    action process_weight() {
-
-        bit<32> idx = (bit<32>) hdr.aggregation.weight_index;
-
+    action read_registers(bit<32> idx) {
         weight_sums.read(meta.current_sum, idx);
         weight_bitmap.read(meta.bitmap, idx);
+    }
 
-        meta.current_sum = meta.current_sum + hdr.aggregation.value;
-
-        bit<8> worker_mask = (bit<8>)1 << (hdr.aggregation.worker_id - 1);
-        meta.bitmap = meta.bitmap | worker_mask;
-
+    action write_registers(bit<32> idx) {
         weight_sums.write(idx, meta.current_sum);
         weight_bitmap.write(idx, meta.bitmap);
+    }
 
-        if (meta.bitmap == 0b111) {
-
-            bit<32> divisor = (bit<32>) NUM_WORKERS;
-            bit<32> avg = meta.current_sum / divisor;
-
-            hdr.aggregation.value = avg;
-
-            weight_sums.write(idx, 0);
-            weight_bitmap.write(idx, 0);
-
-            multicast_to_all();
-        } else {
-            drop();
-        }
+    action reset_registers(bit<32> idx) {
+        weight_sums.write(idx, 0);
+        weight_bitmap.write(idx, 0);
     }
 
     apply {
+
         if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
         }
+
         else if (hdr.aggregation.isValid()) {
-            process_weight();
+
+            bit<32> idx = (bit<32>) hdr.aggregation.weight_index;
+
+            /* Read */
+            read_registers(idx);
+
+            /* Update */
+            meta.current_sum = meta.current_sum + hdr.aggregation.value;
+
+            bit<8> worker_mask = (bit<8>)1 << (hdr.aggregation.worker_id - 1);
+            meta.bitmap = meta.bitmap | worker_mask;
+
+            /* Write updated state */
+            write_registers(idx);
+
+            if (meta.bitmap == 0b111) {
+
+                bit<32> divisor = (bit<32>) NUM_WORKERS;
+                bit<32> avg = meta.current_sum / divisor;
+
+                hdr.aggregation.value = avg;
+
+                /* Reset state */
+                reset_registers(idx);
+
+                multicast_to_all();
+            }
+            else {
+                drop();
+            }
         }
     }
 }
+
 
 /* ================= EGRESS ================= */
 
