@@ -1,5 +1,5 @@
 from scapy.all import Packet, Ether, IP, bind_layers
-from scapy.fields import ByteField, ShortField, IntField
+from scapy.fields import ByteField, ShortField, SignedIntField
 
 TYPE_IPV4        = 0x800
 TYPE_AGGREGATION = 0x1234
@@ -12,7 +12,7 @@ class Aggregation(Packet):
         ByteField("bitmap",        0),
         ShortField("weight_index", 0),
         ShortField("total_weights",0),
-        IntField("weight_value",   0),
+        SignedIntField("weight_value",   0),
     ]
 
 bind_layers(Ether, Aggregation, type=TYPE_AGGREGATION)
