@@ -147,10 +147,12 @@ class Worker:
     # ------------------------------------------------------------------
     def run_training_round(self):
         print(f"[W{self.worker_id}] Loading data...")
+        digits_map = {1: [3, 8], 2: [1, 7], 3: [0, 4]}
+        digits = digits_map.get(self.worker_id, [3, 8])
         (X_train, y_train), (X_test, y_test) = load_multi_mnist(
-            digits=[1, 2, 3],
+            digits=digits,
             num_features = self.config.model_params.input_size,
-            num_samples  = self.config.training.samples_per_worker,
+            num_samples  = self.config.training.samples_per_worker * self.config.protocol.num_workers,
             num_workers  = self.config.protocol.num_workers
         )
 
