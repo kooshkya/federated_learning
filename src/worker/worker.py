@@ -5,13 +5,13 @@ import time
 from typing import Dict
 
 import numpy as np
-from scapy.all import sniff
+from scapy.all import sniff, sendp, Ether
 from scapy.packet import Packet
 
 from config.config import AppConfig, load_config
 from ml.data_loader import load_multi_mnist
 from ml.model import SimpleNeuralNetwork
-from protocol.layers import Aggregation
+from protocol.layers import Aggregation, SCALE
 from utils.network import get_if
 from utils.tracker import ResultsTracker
 
@@ -50,13 +50,34 @@ class Worker:
             print(f"Error in packet receiver: {e}", file=sys.stderr)
 
     def _handle_packet(self, pkt: Packet):
-        # TODO: Get aggregated weights and update the model
-        self.model.set_weights(None)
-        self.received_event.set()
+        if Aggregation in pkt:
+            agg = pkt[Aggregation]
+            self.received_weights[agg.weight_index] = agg.value
+
+            if len(self.received_weights) == agg.total_weights:
+                ordered = [self.received_weights[i] for i in range(agg.total_weights)]
+                float_weights = [w / SCALE for w in ordered]
+                self.model.set_weights(float_weights)
+                self.received_event.set()
+
 
     def send_model_weights(self):
-        # TODO: Send model weights to the network for aggregation
         weights = self.model.get_weights()
+        total = len(weights)
+
+        for idx, w in enumerate(weights):
+            int_val = int(w * SCALE)
+
+            pkt = Ether(type=0x1234) / Aggregation(
+                round=self.current_round,
+                worker_id=self.worker_id,
+                weight_index=idx,
+                total_weights=total,
+                value=int_val
+            )
+
+            sendp(pkt, iface=self.iface, verbose=False)
+
 
     def run_training_round(self):
         print(f"Loading data for round {self.current_round + 1}...")
