@@ -159,7 +159,7 @@ control MyIngress(inout headers hdr,
 
                 int<32> total = s0 + s1 + s2;
                 hdr.aggregation.weight_value = (bit<32>)total;
-                hdr.aggregation.worker_id    = 8w0;
+                hdr.aggregation.worker_id    = 8w3;
                 hdr.aggregation.bitmap       = 8w0x07;
                 broadcast();
 
