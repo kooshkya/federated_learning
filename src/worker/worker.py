@@ -17,7 +17,7 @@ from utils.network import get_if
 from utils.tracker import ResultsTracker
 
 # Scale factor: weights are in [-0.5, 0.5], scale to integers in [-5000, 5000]
-SCALE_FACTOR = 10000
+SCALE_FACTOR = 1_000_000
 
 class Worker:
     def __init__(self, worker_id: int, config: AppConfig):
