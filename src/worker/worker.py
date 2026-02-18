@@ -135,7 +135,7 @@ class Worker:
                     bitmap       = self.bitmap_position,
                     weight_index = idx,
                     total_weights= total,
-                    weight_value = scaled & 0xFFFFFFFF    # unsigned 32-bit
+                    weight_value = scaled    # unsigned 32-bit
                 )
             )
             sendp(pkt, iface=self.iface, verbose=False)
