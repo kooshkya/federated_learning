@@ -87,7 +87,7 @@ class Worker:
         flat = np.array(
             [self._agg_buffer[i] for i in range(self._total_weights)],
             dtype=np.float32
-        ) / SCALE_FACTOR
+        ) / (3 * SCALE_FACTOR)
 
         W1_size = self.config.model_params.input_size  * self.config.model_params.hidden_size
         b1_size = self.config.model_params.hidden_size

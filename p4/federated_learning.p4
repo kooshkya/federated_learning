@@ -154,14 +154,9 @@ control MyIngress(inout headers hdr,
 
                 // Signed sum — range is [-15000, 15000], no overflow for int<32>
                 int<32> total = s0 + s1 + s2;
-
-                // Signed divide by 3 using int<64> intermediate
-                int<64> total64 = (int<64>)total;
-                int<64> avg64   = total64 / 3;
-                int<32> avg     = (int<32>)avg64;
-
+                
                 // Write result back into header as bit<32>
-                hdr.aggregation.weight_value = (bit<32>)avg;
+                hdr.aggregation.weight_value = (bit<32>)total;
                 hdr.aggregation.worker_id    = 8w0;
                 hdr.aggregation.bitmap       = 8w0x07;
 
