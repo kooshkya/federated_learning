@@ -89,7 +89,6 @@ class Worker:
             dtype=np.float32
         ) / SCALE_FACTOR
 
-        # Reconstruct weight arrays matching model shape
         W1_size = self.config.model_params.input_size  * self.config.model_params.hidden_size
         b1_size = self.config.model_params.hidden_size
         W2_size = self.config.model_params.hidden_size * self.config.model_params.output_size
@@ -99,8 +98,7 @@ class Worker:
         W1 = flat[offset:offset+W1_size].reshape(
             self.config.model_params.input_size, self.config.model_params.hidden_size)
         offset += W1_size
-        b1 = flat[offset:offset+b1_size]
-        offset += b1_size
+        b1 = flat[offset:offset+b1_size]; offset += b1_size
         W2 = flat[offset:offset+W2_size].reshape(
             self.config.model_params.hidden_size, self.config.model_params.output_size)
         offset += W2_size
@@ -108,6 +106,10 @@ class Worker:
 
         self.model.set_weights([W1, b1, W2, b2])
         print(f"[W{self.worker_id}] Applied aggregated weights ({self._total_weights} values).")
+
+        # Reset buffer for next round
+        self._agg_buffer.clear()
+        self._total_weights = 0
 
     # ------------------------------------------------------------------
     # Sender
