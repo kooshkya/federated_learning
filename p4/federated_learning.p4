@@ -89,9 +89,7 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 
     // Registers
-    // weight_accum[worker_id * MAX_WEIGHTS + weight_index]
-    // MAX_WEIGHTS = 400 (15*8 + 8*3 = 120+24 = 144 weights, round up to 400)
-    register<bit<32>>(1200) weight_accum;  // 3 workers * 400 weights
+    register<int<32>>(1200) weight_accum;   // signed! 3 workers * 400 weights
     register<bit<8>>(1)     round_bitmap;
     register<bit<8>>(1)     current_round;
 
@@ -99,66 +97,76 @@ control MyIngress(inout headers hdr,
         mark_to_drop(standard_metadata);
     }
 
-    action ipv4_forward(bit<48> dstMac, bit<9> port) {
+    action broadcast() {
+        standard_metadata.mcast_grp = 1;
+    }
+
+    // IPv4 forwarding table
+    action ipv4_forward(bit<48> dstAddr, bit<9> port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
-        hdr.ethernet.dstAddr = dstMac;
+        hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
     table ipv4_lpm {
         key = { hdr.ipv4.dstAddr: lpm; }
         actions = { ipv4_forward; drop; NoAction; }
-        size = 1024;
         default_action = drop();
-    }
-
-    action broadcast() {
-        standard_metadata.mcast_grp = 1;
     }
 
     apply {
         if (hdr.aggregation.isValid()) {
-            // Check/reset round
+
+            // --- Round check / reset ---
             bit<8> sw_round;
             current_round.read(sw_round, 0);
             if (sw_round != hdr.aggregation.round_num) {
-                round_bitmap.write(0, 0);
+                round_bitmap.write(0, 8w0);
                 current_round.write(0, hdr.aggregation.round_num);
             }
 
-            // Accumulate this worker's weight
+            // --- Accumulate (signed) ---
             bit<32> idx = (bit<32>)hdr.aggregation.worker_id * 400 +
                           (bit<32>)hdr.aggregation.weight_index;
-            bit<32> cur;
+            int<32> cur;
             weight_accum.read(cur, idx);
-            weight_accum.write(idx, cur + hdr.aggregation.weight_value);
+            // Cast incoming bit<32> to int<32> before adding
+            int<32> incoming = (int<32>)hdr.aggregation.weight_value;
+            weight_accum.write(idx, cur + incoming);
 
-            // Update bitmap
+            // --- Update bitmap ---
             bit<8> bm;
             round_bitmap.read(bm, 0);
             bm = bm | hdr.aggregation.bitmap;
             round_bitmap.write(0, bm);
 
-            if (bm == 0x07) {
-                // All 3 workers sent this weight index — compute average
+            // --- Check if all 3 workers contributed ---
+            if (bm == 8w0x07) {
                 bit<32> widx = (bit<32>)hdr.aggregation.weight_index;
-                bit<32> s0; bit<32> s1; bit<32> s2;
+
+                int<32> s0;
+                int<32> s1;
+                int<32> s2;
                 weight_accum.read(s0, 0 * 400 + widx);
                 weight_accum.read(s1, 1 * 400 + widx);
                 weight_accum.read(s2, 2 * 400 + widx);
 
-                bit<32> total = s0 + s1 + s2;
+                // Signed sum — range is [-15000, 15000], no overflow for int<32>
+                int<32> total = s0 + s1 + s2;
 
-                // Divide by 3: x/3 ≈ (x * 43691) >> 17
-                bit<64> total64 = (bit<64>)total;
-                bit<64> avg64   = (total64 * 43691) >> 17;
-                bit<32> avg     = (bit<32>)avg64;
+                // Signed divide by 3 using int<64> intermediate
+                int<64> total64 = (int<64>)total;
+                int<64> avg64   = total64 / 3;
+                int<32> avg     = (int<32>)avg64;
 
-                hdr.aggregation.weight_value = avg;
-                hdr.aggregation.worker_id    = 0;
-                hdr.aggregation.bitmap       = 0x07;
+                // Write result back into header as bit<32>
+                hdr.aggregation.weight_value = (bit<32>)avg;
+                hdr.aggregation.worker_id    = 8w0;
+                hdr.aggregation.bitmap       = 8w0x07;
+
                 broadcast();
+
             } else {
                 drop();
             }
