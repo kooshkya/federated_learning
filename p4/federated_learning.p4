@@ -2,7 +2,8 @@
 #include <core.p4>
 #include <v1model.p4>
 
-const bit<16> TYPE_IPV4    = 0x0800;
+const bit<16> TYPE_IPV4        = 0x0800;
+const bit<16> TYPE_ARP         = 0x0806;
 const bit<16> TYPE_AGGREGATION = 0x1234;
 
 /*************************************************************************
@@ -30,21 +31,20 @@ header ipv4_t {
     bit<32> dstAddr;
 }
 
-// One weight per packet: index, total, round, worker, value
 header aggregation_t {
     bit<8>  round_num;
     bit<8>  worker_id;
     bit<16> weight_index;
     bit<16> total_weights;
-    bit<32> weight_value;   // float * 1_000_000, cast to int32
+    bit<32> weight_value;
 }
 
 struct metadata {}
 
 struct headers {
     ethernet_t    ethernet;
-    aggregation_t aggregation;
     ipv4_t        ipv4;
+    aggregation_t aggregation;
 }
 
 /*************************************************************************
@@ -59,19 +59,19 @@ parser MyParser(packet_in packet,
     state start {
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
-            TYPE_AGGREGATION: parse_aggregation;
             TYPE_IPV4:        parse_ipv4;
+            TYPE_AGGREGATION: parse_aggregation;
             default:          accept;
         }
     }
 
-    state parse_aggregation {
-        packet.extract(hdr.aggregation);
+    state parse_ipv4 {
+        packet.extract(hdr.ipv4);
         transition accept;
     }
 
-    state parse_ipv4 {
-        packet.extract(hdr.ipv4);
+    state parse_aggregation {
+        packet.extract(hdr.aggregation);
         transition accept;
     }
 }
@@ -96,13 +96,12 @@ control MyIngress(inout headers hdr,
         mark_to_drop(standard_metadata);
     }
 
-    // Standard L2 unicast forward
-    action forward(bit<9> port) {
+    action ipv4_forward(bit<9> port) {
         standard_metadata.egress_spec = port;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
-    // Broadcast: send to all ports except ingress
-    action broadcast() {
+    action multicast_broadcast() {
         standard_metadata.mcast_grp = 1;
     }
 
@@ -111,34 +110,24 @@ control MyIngress(inout headers hdr,
             hdr.ipv4.dstAddr: lpm;
         }
         actions = {
-            forward;
+            ipv4_forward;
+            multicast_broadcast;
             drop;
             NoAction;
         }
-        default_action = NoAction();
-    }
-
-    table ethernet_exact {
-        key = {
-            hdr.ethernet.dstAddr: exact;
-        }
-        actions = {
-            forward;
-            broadcast;
-            drop;
-            NoAction;
-        }
-        default_action = broadcast();
+        size = 1024;
+        default_action = drop();
     }
 
     apply {
         if (hdr.aggregation.isValid()) {
-            // Always broadcast aggregation packets to all hosts
-            broadcast();
+            // Broadcast aggregation packets to all hosts
+            multicast_broadcast();
         } else if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
         } else {
-            ethernet_exact.apply();
+            // ARP and other L2 frames: broadcast
+            multicast_broadcast();
         }
     }
 }
@@ -150,9 +139,8 @@ control MyIngress(inout headers hdr,
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-
     apply {
-        // Drop packet if it would go back out the ingress port
+        // Do not send packet back out the port it came in on
         if (standard_metadata.egress_port == standard_metadata.ingress_port) {
             mark_to_drop(standard_metadata);
         }
@@ -193,8 +181,8 @@ control MyComputeChecksum(inout headers hdr, inout metadata meta) {
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
-        packet.emit(hdr.aggregation);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.aggregation);
     }
 }
 
