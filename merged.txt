@@ -1,32 +1,5 @@
 
 ================================================================================
-START OF FILE: p4app.json
-================================================================================
-
-{
-  "p4_src": "./p4/federated_learning.p4",
-  "cli": true,
-  "pcap_dump": true,
-  "enable_log": true,
-  "compiler_flags": ["-DDEBUG"],
-  "topology": {
-    "assignment_strategy": "mixed",
-    //TODO: Add hosts and connections based on the provided topology
-    "links": [],
-    "hosts": {},
-    "switches": {
-      "s1": {
-        "cli_input": "p4/switch-commands.txt"
-      }
-    }
-  }
-}
-
-================================================================================
-END OF FILE: p4app.json
-================================================================================
-
-================================================================================
 START OF FILE: p4/federated_learning.p4
 ================================================================================
 
@@ -34,66 +7,234 @@ START OF FILE: p4/federated_learning.p4
 #include <core.p4>
 #include <v1model.p4>
 
-const bit<16> TYPE_IPV4 = 0x800;
+const bit<16> TYPE_IPV4       = 0x800;
 const bit<16> TYPE_AGGREGATION = 0x1234;
 
-// TODO: Define headers needed for regular IPv4 routing and aggregation
-
-struct metadata {
-    // TODO
+// ---------------------------------------------------------------------------
+// Headers
+// ---------------------------------------------------------------------------
+header ethernet_t {
+    bit<48> dstAddr;
+    bit<48> srcAddr;
+    bit<16> etherType;
 }
+
+header ipv4_t {
+    bit<4>  version;
+    bit<4>  ihl;
+    bit<8>  diffserv;
+    bit<16> totalLen;
+    bit<16> identification;
+    bit<3>  flags;
+    bit<13> fragOffset;
+    bit<8>  ttl;
+    bit<8>  protocol;
+    bit<16> hdrChecksum;
+    bit<32> srcAddr;
+    bit<32> dstAddr;
+}
+
+header aggregation_t {
+    bit<8>  round_num;
+    bit<8>  worker_id;
+    bit<8>  bitmap;
+    bit<16> weight_index;
+    bit<16> total_weights;
+    bit<32> weight_value;
+}
+
+struct metadata {}
 
 struct headers {
-    // TODO
+    ethernet_t    ethernet;
+    aggregation_t aggregation;
+    ipv4_t        ipv4;
 }
 
+// ---------------------------------------------------------------------------
+// Parser
+// ---------------------------------------------------------------------------
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
                 inout standard_metadata_t standard_metadata) {
 
-    // TODO
+    state start {
+        packet.extract(hdr.ethernet);
+        transition select(hdr.ethernet.etherType) {
+            TYPE_AGGREGATION: parse_aggregation;
+            TYPE_IPV4:        parse_ipv4;
+            default:          accept;
+        }
+    }
+
+    state parse_aggregation {
+        packet.extract(hdr.aggregation);
+        transition accept;
+    }
+
+    state parse_ipv4 {
+        packet.extract(hdr.ipv4);
+        transition accept;
+    }
 }
 
+// ---------------------------------------------------------------------------
+// Verify Checksum
+// ---------------------------------------------------------------------------
 control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
     apply {}
 }
 
+// ---------------------------------------------------------------------------
+// Ingress
+// ---------------------------------------------------------------------------
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
-    // TODO
-    apply {}
+    // Registers
+    register<int<32>>(1200) weight_accum;
+    register<bit<8>>(400)   weight_bitmap;   // one bitmap per weight index
+    register<bit<8>>(1)     current_round;
+
+
+    action drop() {
+        mark_to_drop(standard_metadata);
+    }
+
+    action broadcast() {
+        standard_metadata.mcast_grp = 1;
+    }
+
+    // IPv4 forwarding table
+    action ipv4_forward(bit<48> dstAddr, bit<9> port) {
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+        hdr.ethernet.dstAddr = dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+
+    table ipv4_lpm {
+        key = { hdr.ipv4.dstAddr: lpm; }
+        actions = { ipv4_forward; drop; NoAction; }
+        default_action = drop();
+    }
+
+    apply {
+        if (hdr.aggregation.isValid()) {
+
+            // --- Round check / reset all bitmaps ---
+            bit<8> sw_round;
+            current_round.read(sw_round, 0);
+            if (sw_round != hdr.aggregation.round_num) {
+                // Reset every per-index bitmap
+                // P4 can't loop, so use a recirculation trick or just rely on
+                // the accum reset below. We'll handle it by resetting bitmap
+                // at the same slot when we reset accumulators.
+                current_round.write(0, hdr.aggregation.round_num);
+            }
+
+            // --- Accumulate (signed) ---
+            bit<32> widx = (bit<32>)hdr.aggregation.weight_index;
+            bit<32> idx  = (bit<32>)hdr.aggregation.worker_id * 400 + widx;
+            int<32> cur;
+            weight_accum.read(cur, idx);
+            int<32> incoming = (int<32>)hdr.aggregation.weight_value;
+            weight_accum.write(idx, cur + incoming);
+
+            // --- Update per-index bitmap ---
+            bit<8> bm;
+            weight_bitmap.read(bm, widx);
+            bm = bm | hdr.aggregation.bitmap;
+            weight_bitmap.write(widx, bm);
+
+            // --- Check if all 3 workers contributed for THIS index ---
+            if (bm == 8w0x07) {
+                int<32> s0; int<32> s1; int<32> s2;
+                weight_accum.read(s0, 0 * 400 + widx);
+                weight_accum.read(s1, 1 * 400 + widx);
+                weight_accum.read(s2, 2 * 400 + widx);
+
+                // Reset accumulators and bitmap for this index
+                weight_accum.write(0 * 400 + widx, (int<32>)0);
+                weight_accum.write(1 * 400 + widx, (int<32>)0);
+                weight_accum.write(2 * 400 + widx, (int<32>)0);
+                weight_bitmap.write(widx, 8w0);
+
+                int<32> total = s0 + s1 + s2;
+                hdr.aggregation.weight_value = (bit<32>)total;
+                hdr.aggregation.worker_id    = 8w3;
+                hdr.aggregation.bitmap       = 8w0x07;
+                broadcast();
+
+            } else {
+                drop();
+            }
+
+        } else if (hdr.ipv4.isValid()) {
+            ipv4_lpm.apply();
+        }
+    }
+
 }
 
+// ---------------------------------------------------------------------------
+// Egress
+// ---------------------------------------------------------------------------
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    // TODO
     apply {}
-
 }
 
+// ---------------------------------------------------------------------------
+// Compute Checksum
+// ---------------------------------------------------------------------------
 control MyComputeChecksum(inout headers hdr, inout metadata meta) {
-    // TODO
-     apply {}
+    apply {
+        update_checksum(
+            hdr.ipv4.isValid(),
+            { hdr.ipv4.version,
+              hdr.ipv4.ihl,
+              hdr.ipv4.diffserv,
+              hdr.ipv4.totalLen,
+              hdr.ipv4.identification,
+              hdr.ipv4.flags,
+              hdr.ipv4.fragOffset,
+              hdr.ipv4.ttl,
+              hdr.ipv4.protocol,
+              hdr.ipv4.srcAddr,
+              hdr.ipv4.dstAddr },
+            hdr.ipv4.hdrChecksum,
+            HashAlgorithm.csum16
+        );
+    }
 }
 
+// ---------------------------------------------------------------------------
+// Deparser
+// ---------------------------------------------------------------------------
 control MyDeparser(packet_out packet, in headers hdr) {
-    // TODO
-    apply {}
+    apply {
+        packet.emit(hdr.ethernet);
+        packet.emit(hdr.aggregation);
+        packet.emit(hdr.ipv4);
+    }
 }
 
-//switch architecture
+// ---------------------------------------------------------------------------
+// Switch Architecture
+// ---------------------------------------------------------------------------
 V1Switch(
-MyParser(),
-MyVerifyChecksum(),
-MyIngress(),
-MyEgress(),
-MyComputeChecksum(),
-MyDeparser()
+    MyParser(),
+    MyVerifyChecksum(),
+    MyIngress(),
+    MyEgress(),
+    MyComputeChecksum(),
+    MyDeparser()
 ) main;
+
 
 ================================================================================
 END OF FILE: p4/federated_learning.p4
@@ -103,10 +244,46 @@ END OF FILE: p4/federated_learning.p4
 START OF FILE: p4/switch-commands.txt
 ================================================================================
 
-TODO: commands to run at switch startup (fill Match+Action tables, etc...)
+table_add ipv4_lpm ipv4_forward 10.0.1.1/32 => 00:00:0a:00:01:01 1
+
+table_add ipv4_lpm ipv4_forward 10.0.1.2/32 => 00:00:0a:00:01:02 2
+
+table_add ipv4_lpm ipv4_forward 10.0.1.3/32 => 00:00:0a:00:01:03 3
+
+mc_mgrp_create 1
+
+mc_node_create 0 1 2 3
+
+mc_node_associate 1 0
 
 ================================================================================
 END OF FILE: p4/switch-commands.txt
+================================================================================
+
+================================================================================
+START OF FILE: src/config/config.json
+================================================================================
+
+{
+  "protocol": {
+    "num_workers": 3
+  },
+  "training": {
+    "rounds": 25,
+    "samples_per_worker": 300,
+    "epochs_per_round": 50,
+    "learning_rate": 0.005,
+    "momentum": 0.9
+  },
+  "model_params": {
+    "input_size": 15,
+    "hidden_size": 8,
+    "output_size": 3
+  }
+}
+
+================================================================================
+END OF FILE: src/config/config.json
 ================================================================================
 
 ================================================================================
@@ -168,32 +345,6 @@ def load_config(path: str) -> AppConfig:
 
 ================================================================================
 END OF FILE: src/config/config.py
-================================================================================
-
-================================================================================
-START OF FILE: src/config/config.json
-================================================================================
-
-{
-  "protocol": {
-    "num_workers": 3
-  },
-  "training": {
-    "rounds": 25,
-    "samples_per_worker": 300,
-    "epochs_per_round": 50,
-    "learning_rate": 0.005,
-    "momentum": 0.9
-  },
-  "model_params": {
-    "input_size": 15,
-    "hidden_size": 8,
-    "output_size": 3
-  }
-}
-
-================================================================================
-END OF FILE: src/config/config.json
 ================================================================================
 
 ================================================================================
@@ -285,8 +436,7 @@ from typing import List
 
 class SimpleNeuralNetwork:
     def __init__(self, input_size: int, hidden_size: int, output_size: int):
-        # Feel free to add what is needed for federated learning procedure
-        self.input_size = input_size
+        self.input_size  = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
 
@@ -301,37 +451,32 @@ class SimpleNeuralNetwork:
         self.z1, self.a1 = None, None
         self.z2, self.a2 = None, None
 
-    def _relu(self, x: np.ndarray) -> np.ndarray:
+    def _relu(self, x):
         return np.maximum(0, x)
 
-    def _softmax(self, x: np.ndarray) -> np.ndarray:
+    def _softmax(self, x):
         exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
         return exp_x / np.sum(exp_x, axis=1, keepdims=True)
 
-    def forward(self, X: np.ndarray) -> np.ndarray:
+    def forward(self, X):
         self.z1 = X @ self.W1 + self.b1
         self.a1 = self._relu(self.z1)
         self.z2 = self.a1 @ self.W2 + self.b2
         self.a2 = self._softmax(self.z2)
         return self.a2
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        probabilities = self.forward(X)
-        return np.argmax(probabilities, axis=1)
+    def predict(self, X):
+        return np.argmax(self.forward(X), axis=1)
 
-    def compute_loss(self, y_true_one_hot: np.ndarray, y_pred_probs: np.ndarray) -> float:
+    def compute_loss(self, y_true_one_hot, y_pred_probs):
         m = y_true_one_hot.shape[0]
-        log_probs = np.log(y_pred_probs + 1e-8)
-        loss = -np.sum(y_true_one_hot * log_probs) / m
-        return loss
+        return -np.sum(y_true_one_hot * np.log(y_pred_probs + 1e-8)) / m
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, learning_rate: float, momentum: float):
+    def train(self, X, y, epochs, learning_rate, momentum):
         m = X.shape[0]
         y_one_hot = np.eye(self.output_size)[y]
-
         for epoch in range(epochs):
             self.forward(X)
-
             dz2 = self.a2 - y_one_hot
             dW2, db2 = (self.a1.T @ dz2) / m, np.sum(dz2, axis=0) / m
             da1 = dz2 @ self.W2.T
@@ -343,31 +488,31 @@ class SimpleNeuralNetwork:
             self.vW2 = momentum * self.vW2 - learning_rate * dW2
             self.vb2 = momentum * self.vb2 - learning_rate * db2
 
-            self.W1 += self.vW1
-            self.b1 += self.vb1
-            self.W2 += self.vW2
-            self.b2 += self.vb2
+            self.W1 += self.vW1; self.b1 += self.vb1
+            self.W2 += self.vW2; self.b2 += self.vb2
 
-            clip_threshold = 0.5
-            np.clip(self.W1, -clip_threshold, clip_threshold, out=self.W1)
-            np.clip(self.W2, -clip_threshold, clip_threshold, out=self.W2)
+            clip = 0.5
+            np.clip(self.W1, -clip, clip, out=self.W1)
+            np.clip(self.W2, -clip, clip, out=self.W2)
 
             if epoch % 10 == 0 or epoch == epochs - 1:
                 loss = self.compute_loss(y_one_hot, self.a2)
-                accuracy = self.evaluate(X, y)
-                print(f"  Epoch {epoch:3d}, Loss: {loss:.4f}, Accuracy: {accuracy:.4f}")
+                acc  = self.evaluate(X, y)
+                print(f"  Epoch {epoch:3d}, Loss: {loss:.4f}, Accuracy: {acc:.4f}")
 
-    def evaluate(self, X: np.ndarray, y: np.ndarray) -> float:
-        y_pred = self.predict(X)
-        return np.mean(y_pred == y)
+    def evaluate(self, X, y):
+        return np.mean(self.predict(X) == y)
 
     def get_weights(self) -> List[np.ndarray]:
-        # TODO: Implement the logic to output current weights to send for aggregation
-        pass
+        """Return all weights as a flat list of arrays: [W1, b1, W2, b2]."""
+        return [self.W1.copy(), self.b1.copy(), self.W2.copy(), self.b2.copy()]
 
-    def set_weights(self, weights):
-        # TODO: Implement the logic to get aggregated weights and update the model
-        pass
+    def set_weights(self, weights: List[np.ndarray]):
+        """Update model parameters from aggregated weight list [W1, b1, W2, b2]."""
+        self.W1 = weights[0].reshape(self.input_size,  self.hidden_size)
+        self.b1 = weights[1].reshape(self.hidden_size)
+        self.W2 = weights[2].reshape(self.hidden_size, self.output_size)
+        self.b2 = weights[3].reshape(self.output_size)
 
 
 ================================================================================
@@ -379,20 +524,24 @@ START OF FILE: src/protocol/layers.py
 ================================================================================
 
 from scapy.all import Packet, Ether, IP, bind_layers
-from scapy.fields import BitField
+from scapy.fields import ByteField, ShortField, SignedIntField
 
-# Constants to match P4
-TYPE_IPV4 = 0x800
+TYPE_IPV4        = 0x800
 TYPE_AGGREGATION = 0x1234
 
 class Aggregation(Packet):
     name = "Aggregation"
-    fields_desc = []
-    # TODO: Add fields for the aggregation packet
-
+    fields_desc = [
+        ByteField("round_num",     0),
+        ByteField("worker_id",     0),
+        ByteField("bitmap",        0),
+        ShortField("weight_index", 0),
+        ShortField("total_weights",0),
+        SignedIntField("weight_value",   0),
+    ]
 
 bind_layers(Ether, Aggregation, type=TYPE_AGGREGATION)
-bind_layers(Ether, IP, type=TYPE_IPV4)
+bind_layers(Ether, IP,          type=TYPE_IPV4)
 bind_layers(Aggregation, IP)
 
 
@@ -468,10 +617,11 @@ import argparse
 import sys
 import threading
 import time
-from typing import Dict
+import struct
+from typing import Dict, List
 
 import numpy as np
-from scapy.all import sniff
+from scapy.all import sniff, sendp, Ether, get_if_hwaddr
 from scapy.packet import Packet
 
 from config.config import AppConfig, load_config
@@ -481,31 +631,40 @@ from protocol.layers import Aggregation
 from utils.network import get_if
 from utils.tracker import ResultsTracker
 
+# Scale factor: weights are in [-0.5, 0.5], scale to integers in [-5000, 5000]
+SCALE_FACTOR = 1_000_000
 
 class Worker:
     def __init__(self, worker_id: int, config: AppConfig):
         self.worker_id = worker_id
-        self.config = config
+        self.config    = config
 
-        self.bitmap_position = 2 ** (worker_id - 1)
+        # bitmap bit position: worker 1 → 0x01, worker 2 → 0x02, worker 3 → 0x04
+        self.bitmap_position = 1 << (worker_id - 1)
         self.iface = get_if()
 
         self.results_tracker = ResultsTracker(worker_id)
         self.model = SimpleNeuralNetwork(
-            input_size=self.config.model_params.input_size,
-            hidden_size=self.config.model_params.hidden_size,
-            output_size=self.config.model_params.output_size
+            input_size  = self.config.model_params.input_size,
+            hidden_size = self.config.model_params.hidden_size,
+            output_size = self.config.model_params.output_size
         )
 
-        self.received_weights: Dict[int, np.ndarray] = {}
-        self.received_event = threading.Event()
-        self.current_round = 0
+        # Will store index→scaled_int once aggregated packet arrives
+        self._agg_buffer: Dict[int, int] = {}
+        self._total_weights = 0
+        self.received_event  = threading.Event()
+        self.current_round   = 0
 
-        self.receiver_thread = threading.Thread(target=self._packet_receiver, daemon=True)
+        self.receiver_thread = threading.Thread(
+            target=self._packet_receiver, daemon=True)
         self.receiver_thread.start()
 
+    # ------------------------------------------------------------------
+    # Receiver
+    # ------------------------------------------------------------------
     def _packet_receiver(self):
-        print(f"Starting packet receiver on {self.iface}...")
+        print(f"[W{self.worker_id}] Listening on {self.iface}...")
         try:
             sniff(
                 filter="ether proto 0x1234",
@@ -513,55 +672,137 @@ class Worker:
                 prn=self._handle_packet
             )
         except Exception as e:
-            print(f"Error in packet receiver: {e}", file=sys.stderr)
+            print(f"Error in receiver: {e}", file=sys.stderr)
 
     def _handle_packet(self, pkt: Packet):
-        # TODO: Get aggregated weights and update the model
-        self.model.set_weights(None)
-        self.received_event.set()
+        if not pkt.haslayer(Aggregation):
+            return
+        agg = pkt[Aggregation]
 
+        # Only accept broadcast aggregation packets (worker_id == 0)
+        if agg.worker_id != 3:
+            return
+        # Only accept packets for the current round
+        if agg.round_num != self.current_round:
+            return
+
+        idx   = agg.weight_index
+        value = agg.weight_value
+
+        self._agg_buffer[idx] = value
+        self._total_weights   = agg.total_weights
+
+        # When we've collected all weight indices, rebuild the model
+        if len(self._agg_buffer) == self._total_weights:
+            self._apply_aggregated_weights()
+            self.received_event.set()
+
+    def _apply_aggregated_weights(self):
+        """Convert scaled integers back to floats and set model weights."""
+        flat = np.array(
+            [self._agg_buffer[i] for i in range(self._total_weights)],
+            dtype=np.float32
+        ) / (3 * SCALE_FACTOR)
+
+        W1_size = self.config.model_params.input_size  * self.config.model_params.hidden_size
+        b1_size = self.config.model_params.hidden_size
+        W2_size = self.config.model_params.hidden_size * self.config.model_params.output_size
+        b2_size = self.config.model_params.output_size
+
+        offset = 0
+        W1 = flat[offset:offset+W1_size].reshape(
+            self.config.model_params.input_size, self.config.model_params.hidden_size)
+        offset += W1_size
+        b1 = flat[offset:offset+b1_size]; offset += b1_size
+        W2 = flat[offset:offset+W2_size].reshape(
+            self.config.model_params.hidden_size, self.config.model_params.output_size)
+        offset += W2_size
+        b2 = flat[offset:offset+b2_size]
+
+        self.model.set_weights([W1, b1, W2, b2])
+        print(f"[W{self.worker_id}] Applied aggregated weights ({self._total_weights} values).")
+
+        # Reset buffer for next round
+        self._agg_buffer.clear()
+        self._total_weights = 0
+
+    # ------------------------------------------------------------------
+    # Sender
+    # ------------------------------------------------------------------
     def send_model_weights(self):
-        # TODO: Send model weights to the network for aggregation
-        weights = self.model.get_weights()
+        weights = self.model.get_weights()      # [W1, b1, W2, b2]
+        flat    = np.concatenate([w.flatten() for w in weights])
+        total   = len(flat)
 
+        src_mac = get_if_hwaddr(self.iface)
+        
+        dst_mac = "ff:ff:ff:ff:ff:ff"
+
+        print(f"[W{self.worker_id}] Sending {total} weights for round {self.current_round}...")
+        for idx, val in enumerate(flat):
+            scaled = int(round(float(val) * SCALE_FACTOR))
+
+            pkt = (
+                Ether(src=src_mac, dst=dst_mac, type=0x1234) /
+                Aggregation(
+                    round_num    = self.current_round,
+                    worker_id    = self.worker_id - 1,   # 0-indexed for P4 register slot
+                    bitmap       = self.bitmap_position,
+                    weight_index = idx,
+                    total_weights= total,
+                    weight_value = scaled    # unsigned 32-bit
+                )
+            )
+            sendp(pkt, iface=self.iface, verbose=False)
+
+        print(f"[W{self.worker_id}] Done sending weights.")
+
+    # ------------------------------------------------------------------
+    # Training
+    # ------------------------------------------------------------------
     def run_training_round(self):
-        print(f"Loading data for round {self.current_round + 1}...")
+        print(f"[W{self.worker_id}] Loading data...")
+        digits_map = {1: [3, 8], 2: [1, 7], 3: [0, 4]}
+        digits = digits_map.get(self.worker_id, [3, 8])
         (X_train, y_train), (X_test, y_test) = load_multi_mnist(
-            digits=[1, 2, 3],
-            num_features=self.config.model_params.input_size,
-            num_samples=self.config.training.samples_per_worker,
-            num_workers=self.config.protocol.num_workers
+            digits=digits,
+            num_features = self.config.model_params.input_size,
+            num_samples  = self.config.training.samples_per_worker * self.config.protocol.num_workers,
+            num_workers  = self.config.protocol.num_workers
         )
 
-        print(f"Training on {len(X_train)} samples...")
+        print(f"[W{self.worker_id}] Training ({len(X_train)} samples)...")
         self.model.train(
             X_train, y_train,
-            epochs=self.config.training.epochs_per_round,
-            learning_rate=self.config.training.learning_rate,
-            momentum=self.config.training.momentum
+            epochs        = self.config.training.epochs_per_round,
+            learning_rate = self.config.training.learning_rate,
+            momentum      = self.config.training.momentum
         )
 
         y_pred_probs = self.model.forward(X_train)
-        y_one_hot = np.eye(self.config.model_params.output_size)[y_train]
-        loss = self.model.compute_loss(y_one_hot, y_pred_probs)
-        train_acc = self.model.evaluate(X_train, y_train)
+        y_one_hot    = np.eye(self.config.model_params.output_size)[y_train]
+        loss         = self.model.compute_loss(y_one_hot, y_pred_probs)
+        train_acc    = self.model.evaluate(X_train, y_train)
         self.results_tracker.add_round_results(self.current_round, loss, train_acc)
-        print(f"Round {self.current_round + 1} - Pre-aggregation training accuracy: {train_acc:.4f}")
+        print(f"[W{self.worker_id}] Round {self.current_round+1} pre-agg train acc: {train_acc:.4f}")
+
+        self._agg_buffer.clear()
         self.send_model_weights()
-        print("Waiting for aggregated model from server...")
-        self.received_event.wait()
+
+        print(f"[W{self.worker_id}] Waiting for aggregated model...")
+        self.received_event.wait(timeout=60)
+        if not self.received_event.is_set():
+            print(f"[W{self.worker_id}] WARNING: Timeout waiting for aggregation!")
+
         post_acc = self.model.evaluate(X_test, y_test)
-        print(f"Round {self.current_round + 1} - Post-aggregation test accuracy: {post_acc:.4f}\n")
+        print(f"[W{self.worker_id}] Round {self.current_round+1} post-agg test acc: {post_acc:.4f}\n")
 
     def start(self):
         num_rounds = self.config.training.rounds
         for r in range(num_rounds):
             self.current_round = r
-            print(f"\n{'=' * 15} Round {r + 1}/{num_rounds} {'=' * 15}")
-
-            self.received_weights.clear()
+            print(f"\n{'='*15} Round {r+1}/{num_rounds} {'='*15}")
             self.received_event.clear()
-
             self.run_training_round()
             time.sleep(2)
 
@@ -571,8 +812,8 @@ class Worker:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Federated Learning Worker Node')
-    parser.add_argument('worker_id', type=int, help='Worker ID (1-indexed)')
-    parser.add_argument('--config', type=str, default='config/config.json', help='Path to the configuration file')
+    parser.add_argument('worker_id', type=int,   help='Worker ID (1-indexed)')
+    parser.add_argument('--config',  type=str,   default='config/config.json')
     args = parser.parse_args()
 
     try:
@@ -581,7 +822,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     np.random.seed(42 + args.worker_id)
-
     worker = Worker(worker_id=args.worker_id, config=app_config)
     worker.start()
 
