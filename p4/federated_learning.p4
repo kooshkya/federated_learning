@@ -159,15 +159,9 @@ control MyIngress(inout headers hdr,
             write_registers(idx);
 
             if (meta.bitmap == 0b111) {
-
-                bit<32> divisor = (bit<32>) NUM_WORKERS;
-                bit<32> avg = meta.current_sum / divisor;
-
+                bit<32> avg = meta.current_sum / 3;
                 hdr.aggregation.value = avg;
-
-                /* Reset state */
                 reset_registers(idx);
-
                 multicast_to_all();
             }
             else {
